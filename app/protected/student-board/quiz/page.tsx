@@ -1,125 +1,142 @@
-"use client";
+import { Sidebar } from "../components/sidebar";
+import { Header } from "../components/header";
+import { createClient } from "@/lib/supabase/server";
+import { BookOpen, Zap, Clock, Calendar, Target, CheckCircle2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { ResultsButton } from "../components/quiz/results-button"; // The component created above
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, ChevronRight, Timer } from "lucide-react";
+export default async function QuizLibraryPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-export function ActiveQuiz({ questions }: { questions: any[] }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [score, setScore] = useState(0);
-  const [isFinished, setIsFinished] = useState(false);
-
-  const currentQuestion = questions[currentStep];
-  const progress = ((currentStep + 1) / questions.length) * 100;
-
-  const handleNext = () => {
-    // Check if correct
-    if (currentQuestion.options.find((o: any) => o.id === selectedOption)?.is_correct) {
-      setScore(score + 1);
-    }
-
-    if (currentStep < questions.length - 1) {
-      setCurrentStep(currentStep + 1);
-      setSelectedOption(null);
-    } else {
-      setIsFinished(true);
-    }
-  };
-
-  if (isFinished) {
-    return (
-      <div className="text-center p-12 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-6">
-        <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-        </div>
-        <h2 className="text-3xl font-black italic">Lab Complete!</h2>
-        <p className="text-slate-500">You scored {score} out of {questions.length}</p>
-        <Button className="bg-violet-600 rounded-xl px-10">Back to Arena</Button>
-      </div>
-    );
-  }
+  // Fetch quizzes and the user's attempt data
+  const { data: quizzes } = await supabase
+    .from("quizzes")
+    .select(`
+      *,
+      attempts:quiz_attempts(
+        score,
+        completed_at
+      )
+    `)
+    .eq('quiz_attempts.user_id', user?.id)
+    .order("created_at", { ascending: false });
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      {/* Header Info */}
-      <div className="flex justify-between items-center px-2">
-        <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-widest">
-          <Timer className="w-4 h-4" />
-          <span>Question {currentStep + 1} of {questions.length}</span>
-        </div>
-        <span className="text-violet-600 font-black text-sm">{Math.round(progress)}%</span>
-      </div>
+    <div className="flex min-h-screen bg-[#F8F9FB] dark:bg-black transition-colors overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar pb-24">
+          <div className="max-w-6xl mx-auto space-y-10">
+            
+            <div className="space-y-2">
+              <h1 className="text-5xl font-black italic tracking-tighter text-[#003366] dark:text-white leading-none">
+                THE <span className="text-violet-600">ARENAS.</span>
+              </h1>
+              <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.4em]">Review performance data and launch modules</p>
+            </div>
 
-      <Progress value={progress} className="h-2 bg-slate-100 dark:bg-white/5" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {quizzes?.map((quiz) => {
+                // Get the most recent attempt for this specific quiz
+                const lastAttempt = quiz.attempts?.sort((a: any, b: any) => 
+                  new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()
+                )[0];
 
-      {/* Question Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 p-8 md:p-12 rounded-[2.5rem] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-10">
-        <h3 className="text-2xl md:text-3xl font-black leading-tight tracking-tight">
-          {currentQuestion.question_text}
-        </h3>
+                const totalQuestions = 21; 
+                const rawScore = lastAttempt?.score || 0;
+                const percentage = (rawScore / totalQuestions) * 100;
 
-        <div className="grid gap-4">
-          {currentQuestion.options.map((option: any) => (
-            <button
-              key={option.id}
-              onClick={() => setSelectedOption(option.id)}
-              className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all font-bold text-left ${
-                selectedOption === option.id
-                  ? "border-violet-600 bg-violet-600/5 text-violet-600 shadow-lg shadow-violet-500/10"
-                  : "border-slate-100 dark:border-white/5 hover:border-slate-200 dark:hover:border-white/10"
-              }`}
-            >
-              <span>{option.option_text}</span>
-              {selectedOption === option.id && <CheckCircle2 className="w-5 h-5" />}
-            </button>
-          ))}
-        </div>
+                let feedback = { label: "", color: "" };
+                if (lastAttempt) {
+                  if (percentage >= 95) feedback = { label: "Excellent", color: "text-emerald-500" };
+                  else if (percentage >= 80) feedback = { label: "Tres Bien", color: "text-blue-500" };
+                  else if (percentage >= 70) feedback = { label: "Bien", color: "text-violet-500" };
+                  else if (percentage < 50) feedback = { label: "Please try again", color: "text-red-500" };
+                  else feedback = { label: "In Progress", color: "text-amber-500" };
+                }
 
-        <Button 
-          disabled={!selectedOption}
-          onClick={handleNext}
-          className="w-full h-16 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-black text-lg shadow-xl shadow-violet-500/20 disabled:opacity-50"
-        >
-          {currentStep === questions.length - 1 ? "Finish Lab" : "Next Question"}
-          <ChevronRight className="ml-2 w-5 h-5" />
-        </Button>
-      </div>
-    </div>
-  );
-}
+                return (
+                  <div key={quiz.id} className="group relative">
+                    <Link 
+                      href={`/protected/student-board/quiz/${quiz.id}`} 
+                      className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-8 transition-all hover:shadow-2xl hover:shadow-violet-500/10 hover:-translate-y-2"
+                    >
+                      {/* Floating Status Icon */}
+                      <div className="absolute top-8 right-8">
+                        {lastAttempt && percentage >= 80 ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        ) : lastAttempt && percentage < 50 ? (
+                          <AlertCircle className="w-5 h-5 text-red-500" />
+                        ) : null}
+                      </div>
 
-// Mock questions data - replace with actual data fetching
-const mockQuestions = [
-  {
-    id: 1,
-    question_text: "What is the capital of France?",
-    options: [
-      { id: "a", option_text: "London", is_correct: false },
-      { id: "b", option_text: "Paris", is_correct: true },
-      { id: "c", option_text: "Berlin", is_correct: false },
-      { id: "d", option_text: "Madrid", is_correct: false }
-    ]
-  },
-  {
-    id: 2,
-    question_text: "Which planet is known as the Red Planet?",
-    options: [
-      { id: "a", option_text: "Venus", is_correct: false },
-      { id: "b", option_text: "Mars", is_correct: true },
-      { id: "c", option_text: "Jupiter", is_correct: false },
-      { id: "d", option_text: "Saturn", is_correct: false }
-    ]
-  }
-];
+                      <div className="space-y-6">
+                        <div className="w-12 h-12 bg-violet-600/10 rounded-2xl flex items-center justify-center text-violet-600">
+                          <BookOpen className="w-6 h-6" />
+                        </div>
 
-export default function QuizPage() {
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-black mb-8 text-center">Language Quiz</h1>
-        <ActiveQuiz questions={mockQuestions} />
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            {quiz.difficulty_level || 'Level 1'}
+                          </span>
+                          <h3 className="text-xl font-black text-[#003366] dark:text-white uppercase leading-tight group-hover:text-violet-600 transition-colors">
+                            {quiz.title}
+                          </h3>
+                        </div>
+
+                        {/* Performance Section */}
+                        <div className="space-y-3">
+                          {lastAttempt ? (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+                                  <Target className="w-3 h-3" />
+                                  <span className="text-[10px] font-black uppercase">Result: {rawScore}/{totalQuestions}</span>
+                                </div>
+                                <span className={cn("text-[10px] font-black uppercase italic tracking-wider", feedback.color)}>
+                                  {feedback.label}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-slate-400">
+                                <Calendar className="w-3 h-3" />
+                                <span className="text-[10px] font-black uppercase">
+                                  Attempted {format(new Date(lastAttempt.completed_at), 'MMM dd, yyyy')}
+                                </span>
+                              </div>
+                              
+                              {/* The Interactive Client Component */}
+                              <ResultsButton />
+                            </>
+                          ) : (
+                            <div className="py-2 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-2xl text-center">
+                              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Arena Unlocked</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer Details */}
+                        <div className="flex items-center gap-4 pt-4 border-t border-slate-50 dark:border-white/5 text-slate-400">
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold">{totalQuestions} Qs</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold">15 Min</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );
