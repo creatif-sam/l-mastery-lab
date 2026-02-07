@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { MeetingCard } from "./components/home/meeting-card"; // Verify path
+import { MeetingCard } from "./components/home/meeting-card";
+import { PhraseCard } from "./components/home/phrase-of-day"; // Added import
 
 export default async function StudentDashboard() {
   const supabase = await createClient();
@@ -52,13 +53,22 @@ export default async function StudentDashboard() {
     const { data: meetingData } = await supabase
       .from("meetings")
       .select("*")
-      .eq("organization_id", profile.organization_id) // Filtered by Org instead of Group
+      .eq("organization_id", profile.organization_id)
       .gte("start_time", new Date().toISOString())
       .order("start_time", { ascending: true })
       .limit(1)
       .maybeSingle();
     nextMeeting = meetingData;
   }
+
+  // 4. Fetch Bilingual Phrase of the Day
+  const { data: phrases } = await supabase
+    .from("daily_phrases")
+    .select("text, text_fr, author");
+
+  const dailyPhrase = phrases && phrases.length > 0 
+    ? phrases[Math.floor(Math.random() * phrases.length)] 
+    : null;
 
   // Helper to handle Supabase join array vs object
   const displayGroupName = Array.isArray(profile?.groups) 
@@ -124,10 +134,13 @@ export default async function StudentDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 
-                {/* 3. MEETING CARD COMPONENT (ORG WIDE) */}
+                {/* 3. MEETING CARD COMPONENT */}
                 <MeetingCard meeting={nextMeeting} />
 
-                {/* 4. LEARNING PATH */}
+                {/* 4. NEW: BILINGUAL PHRASE OF THE DAY */}
+                <PhraseCard phrase={dailyPhrase} />
+
+                {/* 5. LEARNING PATH */}
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Learning Path</h3>
@@ -142,9 +155,9 @@ export default async function StudentDashboard() {
                       <div className="flex-1 space-y-2">
                         <div className="flex justify-between items-start">
                           <span className="text-[10px] font-bold bg-violet-100 dark:bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-md uppercase tracking-widest">Current Module</span>
-                          <span className="text-xs font-medium text-slate-400">4 of 12 lessons</span>
+                          <span className="text-xs font-medium text-slate-400">1 of 12 lessons</span>
                         </div>
-                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">Foundations of Digital Architecture</h4>
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">Foundations Of Language Acquisition 101</h4>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
                           <div className="bg-violet-600 h-full w-1/3 rounded-full" />
                         </div>
@@ -157,7 +170,7 @@ export default async function StudentDashboard() {
                 </div>
               </div>
 
-              {/* 5. SIDEBAR: FORMATION LEADERBOARD */}
+              {/* 6. SIDEBAR: FORMATION LEADERBOARD */}
               <div className="space-y-6">
                  <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-violet-600" />
@@ -172,7 +185,7 @@ export default async function StudentDashboard() {
                     </div>
                     <div className="flex items-center justify-between p-3 border border-violet-500/20 bg-violet-500/5 rounded-lg">
                        <span className="text-xs font-bold text-violet-600">#2</span>
-                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate mx-4">{displayGroupName || "Your Team"}</span>
+                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate mx-4">{(Array.isArray(profile?.groups) ? profile?.groups[0]?.name : profile?.groups?.name) || "Your Team"}</span>
                        <span className="text-xs font-bold text-violet-600 ml-auto">{groupAverage.toFixed(1)}</span>
                     </div>
                     <Link href="/protected/student-board/ranking" className="block text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pt-2 hover:text-violet-600 transition-colors">
