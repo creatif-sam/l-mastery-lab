@@ -89,3 +89,38 @@ export function ActiveQuiz({ questions }: { questions: any[] }) {
     </div>
   );
 }
+
+// Mock questions data - replace with actual data fetching
+const mockQuestions = [
+  {
+    id: 1,
+    question_text: "What is the capital of France?",
+    options: [
+      { id: "a", option_text: "London", is_correct: false },
+      { id: "b", option_text: "Paris", is_correct: true },
+      { id: "c", option_text: "Berlin", is_correct: false },
+      { id: "d", option_text: "Madrid", is_correct: false }
+    ]
+  },
+  {
+    id: 2,
+    question_text: "Which planet is known as the Red Planet?",
+    options: [
+      { id: "a", option_text: "Venus", is_correct: false },
+      { id: "b", option_text: "Mars", is_correct: true },
+      { id: "c", option_text: "Jupiter", is_correct: false },
+      { id: "d", option_text: "Saturn", is_correct: false }
+    ]
+  }
+];
+
+export default function QuizPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-black p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-black mb-8 text-center">Language Quiz</h1>
+        <ActiveQuiz questions={mockQuestions} />
+      </div>
+    </div>
+  );
+}
