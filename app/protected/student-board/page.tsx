@@ -7,9 +7,9 @@ import {
   Zap, 
   TrendingUp, 
   ArrowRight, 
-  Award,
-  Users,
-  Clock
+  Award, 
+  Users, 
+  Clock 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -59,6 +59,11 @@ export default async function StudentDashboard() {
       .maybeSingle();
     nextMeeting = meetingData;
   }
+
+  // Helper to handle Supabase join array vs object
+  const displayGroupName = Array.isArray(profile?.groups) 
+    ? profile?.groups[0]?.name 
+    : (profile?.groups as any)?.name;
 
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] transition-colors overflow-hidden font-sans">
@@ -167,7 +172,7 @@ export default async function StudentDashboard() {
                     </div>
                     <div className="flex items-center justify-between p-3 border border-violet-500/20 bg-violet-500/5 rounded-lg">
                        <span className="text-xs font-bold text-violet-600">#2</span>
-                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate mx-4">{profile?.groups?.name || "Your Team"}</span>
+                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate mx-4">{displayGroupName || "Your Team"}</span>
                        <span className="text-xs font-bold text-violet-600 ml-auto">{groupAverage.toFixed(1)}</span>
                     </div>
                     <Link href="/protected/student-board/ranking" className="block text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pt-2 hover:text-violet-600 transition-colors">
