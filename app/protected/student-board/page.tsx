@@ -1,56 +1,65 @@
-// app/(protected)/students-bord/page.tsx
 import { Sidebar } from "./components/sidebar";
-import { Header } from "./components/header"; // Modularized Header
-import { WelcomeBanner } from "./components/welcome-banner";
-import { ProgressGrid } from "./components/progress-grid";
-import { LessonCarousel } from "./components/lesson-carousel";
-import { StatsPanel } from "./components/stats-panel";
+import { Header } from "./components/header";
+import { ActiveQuiz } from "./components/quiz/active-quiz";
 
-export default function StudentBoard() {
+// Dummy data for initial build - later you will fetch this from Supabase
+const MOCK_QUESTIONS = [
+  {
+    id: "1",
+    question_text: "Comment dit-on 'Collective Intelligence' en français?",
+    options: [
+      { id: "a", option_text: "Intelligence Artificielle", is_correct: false },
+      { id: "b", option_text: "Intelligence Collective", is_correct: true },
+      { id: "c", option_text: "Sagesse de Groupe", is_correct: false },
+      { id: "d", option_text: "Esprit d'équipe", is_correct: false },
+    ],
+  },
+  {
+    id: "2",
+    question_text: "Which tense is used for an action happening right now in English?",
+    options: [
+      { id: "a", option_text: "Past Simple", is_correct: false },
+      { id: "b", option_text: "Present Continuous", is_correct: true },
+      { id: "c", option_text: "Future Perfect", is_correct: false },
+      { id: "d", option_text: "Present Simple", is_correct: false },
+    ],
+  },
+];
+
+// MUST be 'export default' to fix your Vercel Build Error
+export default function QuizPage() {
   return (
-    <div className="flex min-h-screen bg-[#F8F9FB] dark:bg-black transition-colors">
-      {/* Permanent Sidebar */}
+    <div className="flex min-h-screen bg-[#F8F9FB] dark:bg-black transition-colors overflow-hidden">
+      {/* Sidebar - Desktop and Mobile (Bottom Bar) */}
       <Sidebar />
-      
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Modular Top Navigation with Search & Theme Switcher */}
+
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Header with Dynamic Profile & Theme Switcher */}
         <Header />
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-8">
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar pb-24 md:pb-10">
+          <div className="max-w-4xl mx-auto space-y-10">
             
-            {/* Main Column: Learning Content */}
-            <div className="flex-1 space-y-10">
-              <WelcomeBanner />
-              
-              <section className="space-y-4">
-                <h3 className="text-lg font-black tracking-tight text-slate-800 dark:text-slate-200 uppercase">
-                  Active Labs
-                </h3>
-                <ProgressGrid />
-              </section>
-
-              <section className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-black tracking-tight text-slate-800 dark:text-slate-200 uppercase">
-                    Continue Learning
-                  </h3>
-                  <button className="text-violet-600 text-xs font-bold hover:underline uppercase tracking-widest">
-                    See all
-                  </button>
-                </div>
-                <LessonCarousel />
-              </section>
+            {/* Page Title Section */}
+            <div className="text-center md:text-left space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-black uppercase tracking-widest">
+                Lab Assessment v1.0
+              </div>
+              <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter text-slate-900 dark:text-white">
+                QUIZ <span className="text-violet-600">ARENA.</span>
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 font-medium">
+                Test your mastery of French and English through our collective intelligence modules.
+              </p>
             </div>
 
-            {/* Right Sidebar: Activity & Partners */}
-            <aside className="w-full lg:w-80 space-y-8">
-              <StatsPanel />
-            </aside>
+            {/* The Actual Quiz Component */}
+            <ActiveQuiz questions={MOCK_QUESTIONS} />
+            
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
