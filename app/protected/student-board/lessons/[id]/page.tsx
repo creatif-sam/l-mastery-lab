@@ -18,10 +18,13 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
-// 1. Correct Dynamic Import to solve "Module not found" and SSR Hydration errors
+/** * 1. OFFICIAL DYNAMIC WRAPPER
+ * This is the standard fix for Next.js 16/Turbopack.
+ * ssr: false ensures the player only loads in the browser context.
+ */
 const ReactPlayer = dynamic(() => import("react-player"), { 
   ssr: false,
-  loading: () => <div className="aspect-video bg-slate-900 animate-pulse rounded-3xl" /> 
+  loading: () => <div className="aspect-video bg-slate-900 animate-pulse rounded-3xl flex items-center justify-center text-slate-500 font-black uppercase text-[10px] tracking-widest">Initializing Video...</div> 
 });
 
 export default function LessonPage() {
@@ -40,14 +43,14 @@ export default function LessonPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch current lesson + progress data
+        // Fetch current lesson + current user's progress record
         const { data: currentLesson } = await supabase
           .from("lessons")
           .select(`*, lesson_categories(name_en, name_fr), user_lesson_progress!left(is_completed)`)
           .eq("id", params.id)
           .single();
 
-        // Fetch full syllabus for sidebar
+        // Fetch full syllabus for the sidebar navigation
         const { data: allLessons } = await supabase
           .from("lessons")
           .select(`id, title_en, duration_minutes, order_index, user_lesson_progress!left(is_completed)`)
@@ -56,12 +59,11 @@ export default function LessonPage() {
         setLesson(currentLesson);
         setSyllabus(allLessons || []);
         
-        // Check if current user has completed this specific lesson
+        // Safety check for progress array
         const completed = currentLesson?.user_lesson_progress?.some((p: any) => p.is_completed) || false;
         setHasMarkedComplete(completed);
-
       } catch (error) {
-        console.error("Error loading lesson:", error);
+        console.error("Mastery Lab Fetch Error:", error);
       } finally {
         setLoading(false);
       }
@@ -69,6 +71,7 @@ export default function LessonPage() {
     if (params.id) fetchLessonData();
   }, [params.id, supabase]);
 
+  // --- 🎯 MASTERY TRIGGER (Automatic Check at 90%) ---
   const markAsComplete = async () => {
     if (hasMarkedComplete) return;
 
@@ -86,15 +89,15 @@ export default function LessonPage() {
 
     if (!error) {
       setHasMarkedComplete(true);
-      setShowCelebration(true);
+      setShowCelebration(true); // Trigger UI Reward
       
-      // Update local syllabus state to show checkmark immediately
       setSyllabus(prev => prev.map(item => 
         item.id === lesson.id 
           ? { ...item, user_lesson_progress: [{ is_completed: true }] } 
           : item
       ));
 
+      // Hide celebration after 4 seconds of dopamine hit
       setTimeout(() => setShowCelebration(false), 4000);
     }
   };
@@ -105,7 +108,7 @@ export default function LessonPage() {
     </div>
   );
 
-  if (!lesson) return <div className="p-8 text-center">Lesson not found.</div>;
+  if (!lesson) return <div className="p-8 text-center font-black uppercase text-slate-400">Lesson ID: {params.id} not found.</div>;
 
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] font-sans transition-colors overflow-hidden">
@@ -113,16 +116,16 @@ export default function LessonPage() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <Header />
         
-        {/* 🎊 CELEBRATION OVERLAY */}
+        {/* 🎊 CELEBRATION OVERLAY (Z-Index 100 for maximum impact) */}
         {showCelebration && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none px-4 bg-black/20 backdrop-blur-[2px]">
+          <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none px-4 bg-black/10 backdrop-blur-[2px]">
             <div className="bg-violet-600 text-white px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-2 animate-in zoom-in duration-300">
               <div className="flex gap-2">
                 <Trophy className="w-8 h-8 text-yellow-400 animate-bounce" />
                 <Sparkles className="w-8 h-8 text-yellow-200 animate-pulse" />
               </div>
-              <h2 className="text-xl font-black uppercase tracking-tighter italic">Mastery Achieved!</h2>
-              <p className="text-[10px] font-bold text-violet-200 uppercase tracking-widest">Day {lesson.order_index} Complete</p>
+              <h2 className="text-xl font-black uppercase tracking-tighter">Mastery Achieved!</h2>
+              <p className="text-[10px] font-bold text-violet-200 uppercase tracking-widest leading-none">Lesson Progress: 90% Threshold Hit</p>
             </div>
           </div>
         )}
@@ -135,6 +138,7 @@ export default function LessonPage() {
                 <ArrowLeft className="w-3 h-3" /> Back to Curriculum
               </Link>
 
+              {/* 📹 CINEMA MODE VIDEO CONTAINER */}
               <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5 relative group">
                 <ReactPlayer
                   url={`https://www.youtube.com/watch?v=${lesson.video_id}`}
@@ -142,7 +146,7 @@ export default function LessonPage() {
                   height="100%"
                   controls={true}
                   onProgress={(state: any) => {
-                    // 🎯 Mark complete at 90%
+                    // Logic: Automatic Mastery once 90% is consumed
                     if (state.played >= 0.9 && !hasMarkedComplete) {
                       markAsComplete();
                     }
@@ -150,6 +154,7 @@ export default function LessonPage() {
                 />
               </div>
 
+              {/* JUXTAPOSED BILINGUAL SYNOPSIS */}
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 p-6 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3">
@@ -158,7 +163,7 @@ export default function LessonPage() {
                     </div>
                     <div>
                       <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest">
-                        {lesson.lesson_categories?.name_en}
+                        {lesson.lesson_categories?.name_en || "General"}
                       </span>
                       <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none mt-1">
                         {lesson.title_en}
@@ -167,7 +172,6 @@ export default function LessonPage() {
                   </div>
                 </div>
                 
-                {/* JUXTAPOSED CONTENT */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative pt-2">
                   <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-slate-100 dark:bg-white/5 -translate-x-1/2" />
                   
@@ -188,6 +192,7 @@ export default function LessonPage() {
               </div>
             </div>
 
+            {/* 📚 DYNAMIC SIDEBAR SYLLABUS */}
             <div className="space-y-6">
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
@@ -208,9 +213,9 @@ export default function LessonPage() {
                       )}
                     >
                       <div className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 transition-all",
-                        itemComplete ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : 
-                        item.id === params.id ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20" : 
+                        "w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 transition-all shadow-sm",
+                        itemComplete ? "bg-emerald-500 text-white" : 
+                        item.id === params.id ? "bg-violet-600 text-white" : 
                         "bg-slate-100 dark:bg-slate-800 text-slate-400"
                       )}>
                         {itemComplete ? <CheckCircle className="w-4 h-4" /> : item.order_index}
@@ -220,7 +225,7 @@ export default function LessonPage() {
                           "text-[11px] font-black uppercase tracking-tight truncate",
                           item.id === params.id ? "text-violet-600" : "text-slate-700 dark:text-slate-300"
                         )}>{item.title_en}</p>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{item.duration_minutes} min • Lesson</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{item.duration_minutes} min • Mastery Lab</p>
                       </div>
                     </Link>
                   );
