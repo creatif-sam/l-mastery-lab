@@ -7,7 +7,6 @@ import {
   CheckCircle, 
   BookOpen, 
   ArrowLeft, 
-  Languages, 
   Volume2, 
   Loader2,
   Trophy,
@@ -17,7 +16,13 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import ReactPlayer from "react-player";
+import dynamic from "next/dynamic";
+
+// 1. Properly type and dynamically import ReactPlayer to fix the Build Error
+const ReactPlayer = dynamic(() => import("react-player/youtube"), { 
+  ssr: false,
+  loading: () => <div className="aspect-video bg-slate-900 animate-pulse rounded-3xl" /> 
+});
 
 export default function LessonPage() {
   const params = useParams();
@@ -47,7 +52,13 @@ export default function LessonPage() {
 
         setLesson(currentLesson);
         setSyllabus(allLessons || []);
-        setHasMarkedComplete(currentLesson?.user_lesson_progress?.[0]?.is_completed || false);
+        
+        // Safety check for progress array
+        const completed = currentLesson?.user_lesson_progress && currentLesson.user_lesson_progress.length > 0 
+          ? currentLesson.user_lesson_progress[0].is_completed 
+          : false;
+          
+        setHasMarkedComplete(completed);
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -74,7 +85,7 @@ export default function LessonPage() {
 
     if (!error) {
       setHasMarkedComplete(true);
-      setShowCelebration(true); // 🎊 Trigger UI celebration
+      setShowCelebration(true);
       
       setSyllabus(prev => prev.map(item => 
         item.id === lesson.id 
@@ -82,7 +93,6 @@ export default function LessonPage() {
           : item
       ));
 
-      // Hide celebration after 4 seconds
       setTimeout(() => setShowCelebration(false), 4000);
     }
   };
@@ -93,6 +103,8 @@ export default function LessonPage() {
     </div>
   );
 
+  if (!lesson) return <div>Lesson not found.</div>;
+
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] font-sans transition-colors overflow-hidden">
       <Sidebar />
@@ -101,7 +113,7 @@ export default function LessonPage() {
         
         {/* 🎊 CELEBRATION OVERLAY */}
         {showCelebration && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none px-4">
             <div className="bg-violet-600 text-white px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-2 animate-in zoom-in duration-300">
               <div className="flex gap-2">
                 <Trophy className="w-8 h-8 text-yellow-400 animate-bounce" />
@@ -126,9 +138,9 @@ export default function LessonPage() {
                   url={`https://www.youtube.com/watch?v=${lesson.video_id}`}
                   width="100%"
                   height="100%"
-                  controls
-                  onProgress={(progress) => {
-                    if (progress.played >= 0.9 && !hasMarkedComplete) {
+                  controls={true}
+                  onProgress={(state) => {
+                    if (state.played >= 0.9 && !hasMarkedComplete) {
                       markAsComplete();
                     }
                   }}
