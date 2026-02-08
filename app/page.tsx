@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { UserCircle } from "lucide-react";
+import { UserCircle, Sparkles, ArrowRight } from "lucide-react"; // Added icons
 import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export default function HomePage() {
@@ -38,10 +38,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white transition-colors duration-300 font-sans antialiased flex flex-col">
-      {/* Dynamic Background Glow */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.08),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_20%,#1e1b4b,transparent_50%)] dark:opacity-20 pointer-events-none" />
 
-      {/* Navigation */}
       <nav className="relative z-50 w-full border-b border-slate-200 dark:border-white/5 bg-white/60 dark:bg-black/60 backdrop-blur-xl px-6 py-3">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="group flex items-center gap-2">
@@ -65,13 +63,9 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Main Content Area */}
       <main className="relative flex-grow flex flex-col items-center justify-start px-6 pt-12 md:pt-20 lg:pt-24">
-        
-        {/* Hero Section */}
         <section className="w-full max-w-7xl mx-auto flex flex-col items-center text-center gap-6 md:gap-8">
           
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 mb-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
@@ -82,7 +76,6 @@ export default function HomePage() {
             </span>
           </div>
           
-          {/* Main Headline */}
           <div className="space-y-4 md:space-y-6">
             <h1 className="text-6xl md:text-8xl lg:text-[110px] font-black leading-[0.9] tracking-tighter">
               Master <br />
@@ -99,33 +92,46 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* CTA Buttons */}
-         <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-xs md:max-w-md mt-4">
-  <Button 
-    asChild 
-    size="lg" 
-    className="bg-violet-600 hover:bg-violet-700 text-white font-bold h-14 md:h-16 px-10 rounded-2xl transition-all shadow-xl shadow-violet-500/20 active:scale-95 flex-1"
-  >
-    <Link href="/auth/sign-up">GET STARTED</Link>
-  </Button>
-  
-  <Button 
-    asChild // Added missing asChild here
-    variant="outline" 
-    size="lg" 
-    className="border-slate-200 dark:border-white/10 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 h-14 md:h-16 px-10 rounded-2xl font-bold backdrop-blur-sm transition-all flex-1"
-  >
-    <Link href="/learn-more">GET INSPIRED</Link>
-  </Button>
-</div>
+          {/* 🚀 UPDATED CTA AREA */}
+          <div className="flex flex-col gap-4 items-center w-full max-w-lg mt-8">
+            <Button 
+              asChild 
+              size="lg" 
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white font-black h-16 px-10 rounded-2xl transition-all shadow-2xl shadow-violet-500/40 active:scale-[0.98] flex items-center justify-center gap-3 text-sm tracking-widest"
+            >
+              <Link href="/protected/student-board">
+                <Sparkles className="w-5 h-5 fill-white" />
+                CONTINUE LEARNING
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+            </Button>
+            
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+              <Button 
+                asChild 
+                size="lg" 
+                className="bg-slate-900 dark:bg-white text-white dark:text-black font-bold h-14 px-8 rounded-2xl transition-all active:scale-95 flex-1"
+              >
+                <Link href="/auth/sign-up">GET STARTED</Link>
+              </Button>
+              
+              <Button 
+                asChild
+                variant="outline" 
+                size="lg" 
+                className="border-slate-200 dark:border-white/10 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 h-14 px-8 rounded-2xl font-bold backdrop-blur-sm transition-all flex-1"
+              >
+                <Link href="/learn-more">GET INSPIRED</Link>
+              </Button>
+            </div>
+          </div>
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-slate-100 dark:border-white/5 py-8 md:py-12 mt-auto">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6 opacity-60">
           <p className="text-slate-500 text-[10px] tracking-[0.2em] uppercase font-bold">
-            © 2026 LML — Institutional Lab
+            © 2026 LML — Language Mastery Lab
           </p>
           <div className="flex gap-10 text-[10px] font-black tracking-widest text-slate-400 uppercase">
             <Link href="#" className="hover:text-violet-600 dark:hover:text-white transition-colors">Twitter</Link>
