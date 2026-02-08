@@ -11,8 +11,10 @@ import {
   Inbox, 
   ArrowRight, 
   LayoutDashboard, 
-  Zap,
-  BookOpen // Added
+  Zap, 
+  BookOpen,
+  CloudDownload,
+  ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -50,6 +52,12 @@ export default function InboxPage() {
     return () => { supabase.removeChannel(channel); };
   }, [supabase]);
 
+  // Handle Google Drive External Access
+  const openAcademicArchive = () => {
+    const driveUrl = "https://drive.google.com/file/d/1pgB8cIIGFuaxRbRlWtUxhI0yYPBVv-43/view?usp=sharing";
+    window.open(driveUrl, "_blank", "noopener,noreferrer");
+  };
+
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-[#F9FAFB] dark:bg-[#0F172A]">
       <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
@@ -63,12 +71,30 @@ export default function InboxPage() {
         <Header />
         <main className="flex-1 flex overflow-hidden">
           
+          {/* --- 📂 ACTIVITY FEED & RESOURCES --- */}
           <aside className={cn(
             "w-full md:w-80 lg:w-96 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/5 flex flex-col transition-all",
             selectedChat ? "hidden md:flex" : "flex"
           )}>
-            <div className="p-6 border-b border-slate-50 dark:border-white/5">
+            <div className="p-6 border-b border-slate-50 dark:border-white/5 space-y-4">
               <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Activity Feed</h1>
+              
+              {/* ☁️ GOOGLE DRIVE ACCESS BUTTON */}
+              <button 
+                onClick={openAcademicArchive}
+                className="w-full flex items-center justify-between p-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-violet-600 rounded-lg group-hover:rotate-12 transition-transform">
+                    <CloudDownload className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60">Academic Archive</p>
+                    <p className="text-xs font-black uppercase truncate tracking-tight">Download Grammaire Progressive</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-3 h-3 opacity-40" />
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -102,7 +128,7 @@ export default function InboxPage() {
                   <div className="space-y-1">
                     <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none">Inbox is Clear</p>
                     <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed mt-2">
-                      Complete a module or score <br /> in a quiz to see updates.
+                      Please complete a module or score <br /> in a quiz to see updates.
                     </p>
                   </div>
                 </div>
@@ -110,6 +136,7 @@ export default function InboxPage() {
             </div>
           </aside>
 
+          {/* --- 🎯 CONTENT DISPLAY AREA --- */}
           <section className={cn(
             "flex-1 flex flex-col bg-[#FDFDFF] dark:bg-[#0B1120] relative",
             !selectedChat ? "hidden md:flex items-center justify-center" : "flex"
@@ -126,7 +153,7 @@ export default function InboxPage() {
                 <div className="space-y-2">
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Everything is Quiet</h2>
                   <p className="text-sm font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
-                    You haven't received any ranking changes or module alerts yet. Your journey to mastery starts here!
+                    No new alerts or ranking changes yet. Use the button in the feed to access the Academic Archive.
                   </p>
                 </div>
 
