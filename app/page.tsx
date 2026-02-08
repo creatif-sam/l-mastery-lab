@@ -100,14 +100,24 @@ export default function HomePage() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-xs md:max-w-sm mt-4">
-            <Button asChild size="lg" className="bg-violet-600 hover:bg-violet-700 text-white font-bold h-14 md:h-16 px-10 rounded-2xl transition-all shadow-xl shadow-violet-500/20 active:scale-95 flex-1">
-              <Link href="/signup">GET STARTED</Link>
-            </Button>
-            <Button variant="outline" size="lg" className="border-slate-200 dark:border-white/10 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 h-14 md:h-16 px-10 rounded-2xl font-bold backdrop-blur-sm transition-all flex-1">
-              LEARN MORE
-            </Button>
-          </div>
+         <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-xs md:max-w-md mt-4">
+  <Button 
+    asChild 
+    size="lg" 
+    className="bg-violet-600 hover:bg-violet-700 text-white font-bold h-14 md:h-16 px-10 rounded-2xl transition-all shadow-xl shadow-violet-500/20 active:scale-95 flex-1"
+  >
+    <Link href="/auth/sign-up">GET STARTED</Link>
+  </Button>
+  
+  <Button 
+    asChild // Added missing asChild here
+    variant="outline" 
+    size="lg" 
+    className="border-slate-200 dark:border-white/10 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 h-14 md:h-16 px-10 rounded-2xl font-bold backdrop-blur-sm transition-all flex-1"
+  >
+    <Link href="/learn-more">GET INSPIRED</Link>
+  </Button>
+</div>
         </section>
       </main>
 

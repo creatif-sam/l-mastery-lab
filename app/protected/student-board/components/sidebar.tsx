@@ -13,28 +13,40 @@ import {
   ChevronRight
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation"; // Added useRouter
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client"; // Ensure you use the client-side creator
 
 export function Sidebar() {
   const pathname = usePathname();
-  // Initialize from null to handle hydration correctly
+  const router = useRouter();
+  const supabase = createClient(); // Initialize Supabase client
+  
   const [isCollapsed, setIsCollapsed] = useState<boolean | null>(null);
 
-  // Sync with localStorage on mount
   useEffect(() => {
     const savedState = localStorage.getItem("sidebar-collapsed");
     setIsCollapsed(savedState === "true");
   }, []);
 
-  // Update localStorage when state changes
   const toggleSidebar = () => {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem("sidebar-collapsed", String(newState));
   };
 
-  // Prevent flash of unstyled content during hydration
+  // --- NEW LOGOUT HANDLER ---
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Logout error:", error.message);
+      return;
+    }
+    // Refresh the page or redirect to home to clear the auth state
+    router.push("/");
+    router.refresh();
+  };
+
   if (isCollapsed === null) return <div className="hidden md:flex w-64 bg-white dark:bg-slate-900 border-r h-screen" />;
 
   const menuItems = [
@@ -48,7 +60,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* --- DESKTOP SIDEBAR --- */}
       <nav className={cn(
         "hidden md:flex bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/5 p-4 flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out relative z-[60]",
         isCollapsed ? "w-20" : "w-64"
@@ -91,17 +102,21 @@ export function Sidebar() {
         </div>
 
         <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-2">
-          <button className={cn(
-            "w-full flex items-center transition-colors group font-bold text-sm",
-            isCollapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5 text-slate-500 hover:text-red-500"
-          )}>
-            <LogOut className={cn("flex-shrink-0", isCollapsed ? "w-6 h-6 text-slate-400" : "w-5 h-5")} />
+          {/* Linked the handleLogout function here */}
+          <button 
+            onClick={handleLogout}
+            className={cn(
+              "w-full flex items-center transition-colors group font-bold text-sm",
+              isCollapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5 text-slate-500 hover:text-red-500"
+            )}
+          >
+            <LogOut className={cn("flex-shrink-0", isCollapsed ? "w-6 h-6 text-slate-400" : "w-5 h-5 group-hover:text-red-500")} />
             {!isCollapsed && <span>Logout</span>}
           </button>
         </div>
       </nav>
 
-      {/* --- MOBILE BOTTOM NAVIGATION (Constant for better mobile UX) --- */}
+      {/* --- MOBILE NAVIGATION --- */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-white/5 px-2">
         <div className="flex justify-around items-center h-16">
           {menuItems.slice(0, 5).map((item) => (
