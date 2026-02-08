@@ -18,13 +18,27 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
-/** * 1. OFFICIAL DYNAMIC WRAPPER
- * This is the standard fix for Next.js 16/Turbopack.
- * ssr: false ensures the player only loads in the browser context.
+// 1. Define an interface that matches the props you are passing
+interface PlayerProps {
+  url: string;
+  width?: string | number;
+  height?: string | number;
+  controls?: boolean;
+  onProgress?: (state: { played: number; playedSeconds: number; loaded: number; loadedSeconds: number }) => void;
+}
+
+/**
+ * 2. TYPE-SAFE DYNAMIC IMPORT
+ * We cast the dynamic component to our PlayerProps interface.
+ * This removes the "Property 'url' does not exist" error during build.
  */
-const ReactPlayer = dynamic(() => import("react-player"), { 
+const ReactPlayer = dynamic<PlayerProps>(() => import("react-player").then((mod) => mod.default), { 
   ssr: false,
-  loading: () => <div className="aspect-video bg-slate-900 animate-pulse rounded-3xl flex items-center justify-center text-slate-500 font-black uppercase text-[10px] tracking-widest">Initializing Video...</div> 
+  loading: () => (
+    <div className="aspect-video bg-slate-900 animate-pulse rounded-3xl flex items-center justify-center text-slate-500 font-black uppercase text-[10px] tracking-widest">
+      Initializing Video...
+    </div>
+  )
 });
 
 export default function LessonPage() {
@@ -43,14 +57,12 @@ export default function LessonPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch current lesson + current user's progress record
         const { data: currentLesson } = await supabase
           .from("lessons")
           .select(`*, lesson_categories(name_en, name_fr), user_lesson_progress!left(is_completed)`)
           .eq("id", params.id)
           .single();
 
-        // Fetch full syllabus for the sidebar navigation
         const { data: allLessons } = await supabase
           .from("lessons")
           .select(`id, title_en, duration_minutes, order_index, user_lesson_progress!left(is_completed)`)
@@ -59,7 +71,6 @@ export default function LessonPage() {
         setLesson(currentLesson);
         setSyllabus(allLessons || []);
         
-        // Safety check for progress array
         const completed = currentLesson?.user_lesson_progress?.some((p: any) => p.is_completed) || false;
         setHasMarkedComplete(completed);
       } catch (error) {
@@ -71,10 +82,8 @@ export default function LessonPage() {
     if (params.id) fetchLessonData();
   }, [params.id, supabase]);
 
-  // --- 🎯 MASTERY TRIGGER (Automatic Check at 90%) ---
   const markAsComplete = async () => {
     if (hasMarkedComplete) return;
-
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !lesson) return;
 
@@ -89,15 +98,12 @@ export default function LessonPage() {
 
     if (!error) {
       setHasMarkedComplete(true);
-      setShowCelebration(true); // Trigger UI Reward
-      
+      setShowCelebration(true);
       setSyllabus(prev => prev.map(item => 
         item.id === lesson.id 
           ? { ...item, user_lesson_progress: [{ is_completed: true }] } 
           : item
       ));
-
-      // Hide celebration after 4 seconds of dopamine hit
       setTimeout(() => setShowCelebration(false), 4000);
     }
   };
@@ -108,7 +114,7 @@ export default function LessonPage() {
     </div>
   );
 
-  if (!lesson) return <div className="p-8 text-center font-black uppercase text-slate-400">Lesson ID: {params.id} not found.</div>;
+  if (!lesson) return <div className="p-8 text-center font-black uppercase text-slate-400">Lesson not found.</div>;
 
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] font-sans transition-colors overflow-hidden">
@@ -116,7 +122,6 @@ export default function LessonPage() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <Header />
         
-        {/* 🎊 CELEBRATION OVERLAY (Z-Index 100 for maximum impact) */}
         {showCelebration && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none px-4 bg-black/10 backdrop-blur-[2px]">
             <div className="bg-violet-600 text-white px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-2 animate-in zoom-in duration-300">
@@ -132,21 +137,18 @@ export default function LessonPage() {
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
-            
             <div className="lg:col-span-2 space-y-6">
               <Link href="/protected/student-board/lessons" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-violet-600 transition-colors uppercase tracking-[0.2em]">
                 <ArrowLeft className="w-3 h-3" /> Back to Curriculum
               </Link>
 
-              {/* 📹 CINEMA MODE VIDEO CONTAINER */}
               <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5 relative group">
                 <ReactPlayer
                   url={`https://www.youtube.com/watch?v=${lesson.video_id}`}
                   width="100%"
                   height="100%"
                   controls={true}
-                  onProgress={(state: any) => {
-                    // Logic: Automatic Mastery once 90% is consumed
+                  onProgress={(state) => {
                     if (state.played >= 0.9 && !hasMarkedComplete) {
                       markAsComplete();
                     }
@@ -154,7 +156,6 @@ export default function LessonPage() {
                 />
               </div>
 
-              {/* JUXTAPOSED BILINGUAL SYNOPSIS */}
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 p-6 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3">
@@ -174,57 +175,29 @@ export default function LessonPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative pt-2">
                   <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-slate-100 dark:bg-white/5 -translate-x-1/2" />
-                  
                   <div className="space-y-3">
                     <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">English Synopsis</span>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed tracking-tight">
-                      {lesson.description_en}
-                    </p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed tracking-tight">{lesson.description_en}</p>
                   </div>
-
                   <div className="space-y-3">
                     <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest">Synthèse Française</span>
-                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-relaxed tracking-tight">
-                      {lesson.description_fr}
-                    </p>
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-relaxed tracking-tight">{lesson.description_fr}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 📚 DYNAMIC SIDEBAR SYLLABUS */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-violet-600" /> Syllabus
-                </h3>
-              </div>
-
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
                 {syllabus.map((item) => {
                   const itemComplete = item.user_lesson_progress?.some((p: any) => p.is_completed);
                   return (
-                    <Link 
-                      href={`/protected/student-board/lessons/${item.id}`}
-                      key={item.id}
-                      className={cn(
-                        "w-full flex items-center gap-4 p-4 text-left transition-all border-b last:border-0 border-slate-50 dark:border-white/5",
-                        item.id === params.id ? "bg-violet-600/5" : "hover:bg-slate-50 dark:hover:bg-white/5"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 transition-all shadow-sm",
-                        itemComplete ? "bg-emerald-500 text-white" : 
-                        item.id === params.id ? "bg-violet-600 text-white" : 
-                        "bg-slate-100 dark:bg-slate-800 text-slate-400"
-                      )}>
+                    <Link href={`/protected/student-board/lessons/${item.id}`} key={item.id} className={cn("w-full flex items-center gap-4 p-4 text-left transition-all border-b last:border-0 border-slate-50 dark:border-white/5", item.id === params.id ? "bg-violet-600/5" : "hover:bg-slate-50 dark:hover:bg-white/5")}>
+                      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 transition-all shadow-sm", itemComplete ? "bg-emerald-500 text-white" : item.id === params.id ? "bg-violet-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
                         {itemComplete ? <CheckCircle className="w-4 h-4" /> : item.order_index}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          "text-[11px] font-black uppercase tracking-tight truncate",
-                          item.id === params.id ? "text-violet-600" : "text-slate-700 dark:text-slate-300"
-                        )}>{item.title_en}</p>
+                        <p className={cn("text-[11px] font-black uppercase tracking-tight truncate", item.id === params.id ? "text-violet-600" : "text-slate-700 dark:text-slate-300")}>{item.title_en}</p>
                         <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{item.duration_minutes} min • Mastery Lab</p>
                       </div>
                     </Link>
@@ -232,7 +205,6 @@ export default function LessonPage() {
                 })}
               </div>
             </div>
-
           </div>
         </main>
       </div>
