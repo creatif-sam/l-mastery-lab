@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { MeetingCard } from "./components/home/meeting-card";
-import { PhraseCard } from "./_components/phrase-card";
+import { PhraseCard } from "./components/home/phrase-of-day";
 
 export default async function StudentDashboard() {
   const supabase = await createClient();
