@@ -1,34 +1,52 @@
-// app/(protected)/student-board/_components/header.tsx
+"use client"; // ✅ Added to allow use in Settings & other client pages
+
+import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client"; // ✅ Changed to client creator
 import Image from "next/image";
+import Link from "next/link";
 import { NotificationCenter } from "./notifications";
 
-export async function Header() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export function Header() {
+  const supabase = createClient();
+  const [profile, setProfile] = useState<any>(null);
+  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select(`
-      full_name, 
-      avatar_url, 
-      role,
-      organizations (name, logo_url)
-    `)
-    .eq("id", user?.id)
-    .single() as any;
+  useEffect(() => {
+    async function fetchHeaderData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  if (error) console.error("Header Fetch Error:", error);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          full_name, 
+          avatar_url, 
+          role,
+          organizations (name, logo_url)
+        `)
+        .eq("id", user.id)
+        .single();
 
-  const org = Array.isArray(profile?.organizations) 
-    ? profile?.organizations[0] 
-    : profile?.organizations;
+      if (error) {
+        console.error("Header Fetch Error:", error);
+        return;
+      }
 
-  const orgLogoUrl = org?.logo_url 
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${org.logo_url}`
-    : null;
+      setProfile(data);
+
+      const org = Array.isArray(data?.organizations) 
+        ? data?.organizations[0] 
+        : data?.organizations;
+
+      if (org?.logo_url) {
+        setOrgLogoUrl(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${org.logo_url}`);
+      }
+    }
+
+    fetchHeaderData();
+  }, []);
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase()
@@ -47,19 +65,18 @@ export async function Header() {
         />
       </div>
 
-      {/* Main Action Container */}
       <div className="flex items-center justify-end flex-1 md:flex-initial gap-3 md:gap-6">
-        
-        {/* 1. Theme Switcher (Left-most on mobile) */}
         <div className="order-1">
           <ThemeSwitcher />
         </div>
 
-        {/* 2. User Profile (Center on mobile) */}
-        <div className="order-2 flex items-center gap-3">
+        <Link 
+          href="/protected/student-board/settings" 
+          className="order-2 flex items-center gap-3 hover:opacity-80 transition-all active:scale-95 group"
+        >
           <div className="text-right hidden sm:flex flex-col">
-            <p className="text-sm font-bold tracking-tight leading-none text-slate-900 dark:text-white">
-              {profile?.full_name || "Guest User"}
+            <p className="text-sm font-bold tracking-tight leading-none text-slate-900 dark:text-white group-hover:text-violet-600 transition-colors">
+              {profile?.full_name || "Loading..."}
             </p>
             <div className="flex items-center justify-end gap-1.5 mt-1.5">
               <span className="text-[10px] text-violet-600 dark:text-violet-400 font-bold uppercase tracking-wider">
@@ -68,7 +85,7 @@ export async function Header() {
             </div>
           </div>
           
-          <div className="relative group cursor-pointer">
+          <div className="relative">
             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-violet-500/10">
               {profile?.avatar_url ? (
                 <Image 
@@ -91,16 +108,13 @@ export async function Header() {
               </div>
             )}
           </div>
-        </div>
+        </Link>
 
-        {/* 3. Divider (Hidden on Mobile) */}
         <div className="hidden md:block h-6 w-[1px] bg-slate-200 dark:bg-white/10 order-2" />
 
-        {/* 4. Notification Center (Far Right on mobile) */}
         <div className="order-3">
           <NotificationCenter />
         </div>
-
       </div>
     </header>
   );
