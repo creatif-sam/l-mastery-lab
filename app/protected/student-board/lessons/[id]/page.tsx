@@ -18,8 +18,8 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
-// 1. Properly type and dynamically import ReactPlayer to fix the Build Error
-const ReactPlayer = dynamic(() => import("react-player/youtube"), { 
+// 1. Correct Dynamic Import to solve "Module not found" and SSR Hydration errors
+const ReactPlayer = dynamic(() => import("react-player"), { 
   ssr: false,
   loading: () => <div className="aspect-video bg-slate-900 animate-pulse rounded-3xl" /> 
 });
@@ -38,13 +38,16 @@ export default function LessonPage() {
     async function fetchLessonData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+        if (!user) return;
+
+        // Fetch current lesson + progress data
         const { data: currentLesson } = await supabase
           .from("lessons")
           .select(`*, lesson_categories(name_en, name_fr), user_lesson_progress!left(is_completed)`)
           .eq("id", params.id)
           .single();
 
+        // Fetch full syllabus for sidebar
         const { data: allLessons } = await supabase
           .from("lessons")
           .select(`id, title_en, duration_minutes, order_index, user_lesson_progress!left(is_completed)`)
@@ -53,20 +56,18 @@ export default function LessonPage() {
         setLesson(currentLesson);
         setSyllabus(allLessons || []);
         
-        // Safety check for progress array
-        const completed = currentLesson?.user_lesson_progress && currentLesson.user_lesson_progress.length > 0 
-          ? currentLesson.user_lesson_progress[0].is_completed 
-          : false;
-          
+        // Check if current user has completed this specific lesson
+        const completed = currentLesson?.user_lesson_progress?.some((p: any) => p.is_completed) || false;
         setHasMarkedComplete(completed);
+
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Error loading lesson:", error);
       } finally {
         setLoading(false);
       }
     }
     if (params.id) fetchLessonData();
-  }, [params.id]);
+  }, [params.id, supabase]);
 
   const markAsComplete = async () => {
     if (hasMarkedComplete) return;
@@ -87,6 +88,7 @@ export default function LessonPage() {
       setHasMarkedComplete(true);
       setShowCelebration(true);
       
+      // Update local syllabus state to show checkmark immediately
       setSyllabus(prev => prev.map(item => 
         item.id === lesson.id 
           ? { ...item, user_lesson_progress: [{ is_completed: true }] } 
@@ -103,7 +105,7 @@ export default function LessonPage() {
     </div>
   );
 
-  if (!lesson) return <div>Lesson not found.</div>;
+  if (!lesson) return <div className="p-8 text-center">Lesson not found.</div>;
 
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] font-sans transition-colors overflow-hidden">
@@ -113,13 +115,13 @@ export default function LessonPage() {
         
         {/* 🎊 CELEBRATION OVERLAY */}
         {showCelebration && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none px-4">
+          <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none px-4 bg-black/20 backdrop-blur-[2px]">
             <div className="bg-violet-600 text-white px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-2 animate-in zoom-in duration-300">
               <div className="flex gap-2">
                 <Trophy className="w-8 h-8 text-yellow-400 animate-bounce" />
                 <Sparkles className="w-8 h-8 text-yellow-200 animate-pulse" />
               </div>
-              <h2 className="text-xl font-black uppercase tracking-tighter">Mastery Achieved!</h2>
+              <h2 className="text-xl font-black uppercase tracking-tighter italic">Mastery Achieved!</h2>
               <p className="text-[10px] font-bold text-violet-200 uppercase tracking-widest">Day {lesson.order_index} Complete</p>
             </div>
           </div>
@@ -139,7 +141,8 @@ export default function LessonPage() {
                   width="100%"
                   height="100%"
                   controls={true}
-                  onProgress={(state) => {
+                  onProgress={(state: any) => {
+                    // 🎯 Mark complete at 90%
                     if (state.played >= 0.9 && !hasMarkedComplete) {
                       markAsComplete();
                     }
@@ -164,6 +167,7 @@ export default function LessonPage() {
                   </div>
                 </div>
                 
+                {/* JUXTAPOSED CONTENT */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative pt-2">
                   <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-slate-100 dark:bg-white/5 -translate-x-1/2" />
                   
@@ -193,7 +197,7 @@ export default function LessonPage() {
 
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
                 {syllabus.map((item) => {
-                  const itemComplete = item.user_lesson_progress?.[0]?.is_completed;
+                  const itemComplete = item.user_lesson_progress?.some((p: any) => p.is_completed);
                   return (
                     <Link 
                       href={`/protected/student-board/lessons/${item.id}`}
