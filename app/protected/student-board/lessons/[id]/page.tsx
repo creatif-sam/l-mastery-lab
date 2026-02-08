@@ -10,7 +10,9 @@ import {
   Volume2, 
   Loader2,
   Trophy,
-  Sparkles
+  Sparkles,
+  FileText,
+  PlayCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -19,7 +21,6 @@ import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
 // 1. RELAXED INTERFACE FOR BUILD COMPATIBILITY
-// Using 'any' for the progress state resolves the SyntheticEvent mismatch.
 interface PlayerProps {
   url: string;
   width?: string | number;
@@ -28,10 +29,6 @@ interface PlayerProps {
   onProgress?: (state: any) => void;
 }
 
-/**
- * 2. DYNAMIC IMPORT WITH ESM COMPATIBILITY
- * We use mod.default to ensure the correct component is loaded from the module.
- */
 const ReactPlayer = dynamic<PlayerProps>(
   () => import("react-player").then((mod) => mod.default as any),
   { 
@@ -68,7 +65,7 @@ export default function LessonPage() {
 
         const { data: allLessons } = await supabase
           .from("lessons")
-          .select(`id, title_en, duration_minutes, order_index, user_lesson_progress!left(is_completed)`)
+          .select(`id, title_en, duration_minutes, order_index, content_type, user_lesson_progress!left(is_completed)`)
           .order("order_index", { ascending: true });
 
         setLesson(currentLesson);
@@ -133,7 +130,7 @@ export default function LessonPage() {
                 <Sparkles className="w-8 h-8 text-yellow-200 animate-pulse" />
               </div>
               <h2 className="text-xl font-black uppercase tracking-tighter">Mastery Achieved!</h2>
-              <p className="text-[10px] font-bold text-violet-200 uppercase tracking-widest leading-none">Lesson Progress: 90% Threshold Hit</p>
+              <p className="text-[10px] font-bold text-violet-200 uppercase tracking-widest leading-none">Lesson Progress: Mastery Confirmed</p>
             </div>
           </div>
         )}
@@ -145,22 +142,60 @@ export default function LessonPage() {
                 <ArrowLeft className="w-3 h-3" /> Back to Curriculum
               </Link>
 
-              <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5 relative group">
-                <ReactPlayer
-                  url={`https://www.youtube.com/watch?v=${lesson.video_id}`}
-                  width="100%"
-                  height="100%"
-                  controls={true}
-                  onProgress={(state) => {
-                    // 🎯 Mastery achieved at 90%
-                    if (state.played >= 0.9 && !hasMarkedComplete) {
-                      markAsComplete();
-                    }
-                  }}
-                />
-              </div>
+              {/* DYNAMIC CONTENT SWITCHER */}
+              {lesson.content_type === 'text' ? (
+                /* 📖 TEXT CONTENT VIEW */
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-sm">
+                  <div className="flex items-center gap-2 mb-8">
+                    <FileText className="w-5 h-5 text-violet-600" />
+                    <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest px-1">Deep Reading Module</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative">
+                    <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-slate-100 dark:bg-white/5 -translate-x-1/2" />
+                    
+                    <div className="space-y-6">
+                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">English Instruction</span>
+                      <div className="text-slate-800 dark:text-slate-200 font-bold leading-relaxed whitespace-pre-wrap">
+                        {lesson.body_content_en || "No content provided."}
+                      </div>
+                    </div>
 
-              {/* JUXTAPOSED BILINGUAL CONTENT */}
+                    <div className="space-y-6">
+                      <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest">Instruction Française</span>
+                      <div className="text-slate-500 dark:text-slate-400 font-semibold leading-relaxed whitespace-pre-wrap">
+                        {lesson.body_content_fr || "Aucun contenu fourni."}
+                      </div>
+                    </div>
+                  </div>
+
+                  {!hasMarkedComplete && (
+                    <button 
+                      onClick={markAsComplete}
+                      className="mt-12 w-full bg-violet-600 hover:bg-violet-700 text-white font-black py-4 rounded-xl shadow-xl shadow-violet-500/20 transition-all active:scale-[0.98] uppercase tracking-widest text-xs"
+                    >
+                      Complete Reading Mastery
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* 📹 VIDEO CONTENT VIEW */
+                <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5 relative group">
+                  <ReactPlayer
+                    url={`https://www.youtube.com/watch?v=${lesson.video_id}`}
+                    width="100%"
+                    height="100%"
+                    controls={true}
+                    onProgress={(state) => {
+                      if (state.played >= 0.9 && !hasMarkedComplete) {
+                        markAsComplete();
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* JUXTAPOSED BILINGUAL SYNOPSIS (Summary) */}
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 p-6 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3">
@@ -199,11 +234,13 @@ export default function LessonPage() {
                   return (
                     <Link href={`/protected/student-board/lessons/${item.id}`} key={item.id} className={cn("w-full flex items-center gap-4 p-4 text-left transition-all border-b last:border-0 border-slate-50 dark:border-white/5", item.id === params.id ? "bg-violet-600/5" : "hover:bg-slate-50 dark:hover:bg-white/5")}>
                       <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 transition-all shadow-sm", itemComplete ? "bg-emerald-500 text-white" : item.id === params.id ? "bg-violet-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
-                        {itemComplete ? <CheckCircle className="w-4 h-4" /> : item.order_index}
+                        {itemComplete ? <CheckCircle className="w-4 h-4" /> : 
+                         item.content_type === 'text' ? <FileText className="w-4 h-4" /> : 
+                         <PlayCircle className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={cn("text-[11px] font-black uppercase tracking-tight truncate", item.id === params.id ? "text-violet-600" : "text-slate-700 dark:text-slate-300")}>{item.title_en}</p>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{item.duration_minutes} min • Mastery Lab</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{item.duration_minutes} min • {item.content_type}</p>
                       </div>
                     </Link>
                   );
