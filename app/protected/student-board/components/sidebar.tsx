@@ -51,7 +51,7 @@ export function Sidebar() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/protected/student-board", active: pathname === "/protected/student-board" },
-    { icon: BookOpen, label: "Lessons", href: "/student-board/lessons", active: pathname === "/student-board/lessons" },
+    { icon: BookOpen, label: "Lessons", href: "/protected/student-board/lessons", active: pathname === "/protected/student-board/lessons" },
     { icon: HelpCircle, label: "Quiz", href: "/protected/student-board/quiz", active: pathname === "/protected/student-board/quiz" },
     { icon: Trophy, label: "Arena", href: "/protected/student-board/ranking", active: pathname === "/protected/student-board/ranking" },
     { icon: Users, label: "Groups", href: "/protected/student-board/network", active: pathname === "/protected/student-board/network" },
