@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { UserCircle, Sparkles, ArrowRight } from "lucide-react";
+import { UserCircle, Sparkles, ArrowRight, Globe, Lock, Zap } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { CollaborativeAnimation } from "@/components/collaborative-animation";
 
@@ -39,93 +39,70 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white transition-colors duration-300 font-sans antialiased flex flex-col">
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.08),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_20%,#1e1b4b,transparent_50%)] dark:opacity-20 pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.06),transparent_60%)] pointer-events-none" />
 
-      <nav className="relative z-50 w-full border-b border-slate-200 dark:border-white/5 bg-white/60 dark:bg-black/60 backdrop-blur-xl px-6 py-3">
+      {/* NAV */}
+      <nav className="relative z-50 w-full border-b border-slate-200 dark:border-white/5 bg-white/70 dark:bg-black/70 backdrop-blur-xl px-6 py-3">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="group flex items-center gap-2">
-            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center font-black text-sm text-white group-hover:rotate-12 transition-transform shadow-lg shadow-violet-500/20">
-              L
-            </div>
-            <span className="text-xl font-black tracking-tighter">
-              LML<span className="text-violet-500">.</span>
-            </span>
+            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center font-black text-sm text-white group-hover:rotate-12 transition-transform shadow-lg shadow-violet-500/20">L</div>
+            <span className="text-xl font-black tracking-tighter">LML<span className="text-violet-500">.</span></span>
           </Link>
-          
           <div className="flex items-center gap-3">
             <ThemeSwitcher />
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-white/10 mx-1" />
-            <Link href="/blog" className="text-xs font-black tracking-widest text-slate-500 hover:text-violet-600 dark:hover:text-white uppercase transition-colors px-2 py-1">
-              Blog
-            </Link>
+            <Link href="/blog" className="text-xs font-black tracking-widest text-slate-500 hover:text-violet-600 dark:hover:text-white uppercase transition-colors px-2 py-1">Blog</Link>
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-white/10 mx-1" />
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-violet-500/10 hover:text-violet-500 transition-colors" asChild>
-              <Link href="/auth/login" aria-label="Login">
-                <UserCircle className="w-6 h-6" />
-              </Link>
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-violet-500/10 hover:text-violet-500" asChild>
+              <Link href="/auth/login" aria-label="Login"><UserCircle className="w-6 h-6" /></Link>
             </Button>
           </div>
         </div>
       </nav>
 
-      <main className="relative flex-grow flex flex-col items-center justify-start px-6 pt-12 md:pt-20 lg:pt-24">
-        <section className="w-full max-w-7xl mx-auto flex flex-col items-center text-center gap-6 md:gap-8">
-          
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 mb-2">
+      {/* === ANIMATION AT THE TOP === */}
+      <CollaborativeAnimation />
+
+      {/* === HERO BELOW === */}
+      <main className="relative flex-grow flex flex-col items-center justify-center px-6 py-14 md:py-20">
+        <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center gap-6">
+
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
             </span>
-            <span className="text-violet-600 dark:text-violet-400 font-bold uppercase tracking-[0.2em] text-[10px]">
-              Language Mastery Lab
-            </span>
+            <span className="text-violet-600 dark:text-violet-400 font-bold uppercase tracking-[0.2em] text-[10px]">Language Mastery Lab</span>
           </div>
-          
-          <div className="space-y-4 md:space-y-6">
-            <h1 className="text-6xl md:text-8xl lg:text-[110px] font-black leading-[0.9] tracking-tighter">
-              Master <br />
-              <span className="text-violet-600 inline-block min-w-[280px] md:min-w-[450px]">
+
+          <div className="space-y-3">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black leading-[0.95] tracking-tighter">
+              Master{" "}
+              <span className="text-violet-600 inline-block min-w-[180px] md:min-w-[300px]">
                 {displayText}
                 <span className="animate-pulse font-thin text-slate-300 dark:text-slate-800">|</span>
-              </span> 
+              </span>
               <br />
-              <span className="italic font-serif font-light text-slate-400 dark:text-slate-600">Own your Future.</span>
+              <span className="italic font-serif font-light text-slate-400 dark:text-slate-600 text-2xl md:text-3xl lg:text-4xl">Own your Future.</span>
             </h1>
-            
-            <p className="text-slate-500 dark:text-slate-400 text-base md:text-xl lg:text-2xl max-w-2xl mx-auto leading-relaxed font-medium">
-              The premier ecosystem for <span className="text-slate-900 dark:text-white">adults and adolescents</span> to accelerate language mastery through <span className="text-slate-900 dark:text-white underline decoration-violet-500/30 underline-offset-4 font-bold">collective intelligence</span>.
+            <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+              The premier ecosystem for <span className="font-bold text-slate-900 dark:text-white">adults and adolescents</span> to accelerate language mastery through <span className="font-bold underline decoration-violet-500/30 underline-offset-4">collective intelligence</span>.
             </p>
           </div>
 
-          {/* 🚀 UPDATED CTA AREA */}
-          <div className="flex flex-col gap-4 items-center w-full max-w-lg mt-8">
-            <Button 
-              asChild 
-              size="lg" 
-              className="w-full bg-violet-600 hover:bg-violet-700 text-white font-black h-16 px-10 rounded-2xl transition-all shadow-2xl shadow-violet-500/40 active:scale-[0.98] flex items-center justify-center gap-3 text-sm tracking-widest"
-            >
+          <div className="flex flex-col gap-3 items-center w-full max-w-md mt-2">
+            <Button asChild size="lg" className="w-full bg-violet-600 hover:bg-violet-700 text-white font-black h-14 px-8 rounded-2xl shadow-2xl shadow-violet-500/30 flex items-center gap-3 text-sm tracking-widest">
               <Link href="/protected/student-board">
-                <Sparkles className="w-5 h-5 fill-white" />
+                <Sparkles className="w-4 h-4 fill-white" />
                 CONTINUE LEARNING
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
-            
-            <div className="flex flex-col sm:flex-row gap-4 w-full">
-              <Button 
-                asChild 
-                size="lg" 
-                className="bg-slate-900 dark:bg-white text-white dark:text-black font-bold h-14 px-8 rounded-2xl transition-all active:scale-95 flex-1"
-              >
+            <div className="flex gap-3 w-full">
+              <Button asChild size="lg" className="bg-slate-900 dark:bg-white text-white dark:text-black font-bold h-12 rounded-2xl flex-1 text-sm">
                 <Link href="/auth/sign-up">GET STARTED</Link>
               </Button>
-              
-              <Button 
-                asChild
-                variant="outline" 
-                size="lg" 
-                className="border-slate-200 dark:border-white/10 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 h-14 px-8 rounded-2xl font-bold backdrop-blur-sm transition-all flex-1"
-              >
+              <Button asChild variant="outline" size="lg" className="border-slate-200 dark:border-white/10 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 h-12 rounded-2xl font-bold flex-1 text-sm">
                 <Link href="/learn-more">GET INSPIRED</Link>
               </Button>
             </div>
@@ -133,16 +110,80 @@ export default function HomePage() {
         </section>
       </main>
 
-      <CollaborativeAnimation />
+      {/* === SOLID FOOTER === */}
+      <footer className="relative z-10 bg-slate-950 text-white mt-auto">
+        {/* Main grid */}
+        <div className="max-w-7xl mx-auto px-6 pt-14 pb-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
 
-      <footer className="relative z-10 border-t border-slate-100 dark:border-white/5 py-8 md:py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6 opacity-60">
-          <p className="text-slate-500 text-[10px] tracking-[0.2em] uppercase font-bold">
-            © 2026 LML — Language Mastery Lab
-          </p>
-          <div className="flex gap-10 text-[10px] font-black tracking-widest text-slate-400 uppercase">
-            <Link href="#" className="hover:text-violet-600 dark:hover:text-white transition-colors">Twitter</Link>
-            <Link href="#" className="hover:text-violet-600 dark:hover:text-white transition-colors">Contact</Link>
+          {/* Brand */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 bg-violet-600 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-lg shadow-violet-500/30">L</div>
+              <span className="text-xl font-black tracking-tighter">LML<span className="text-violet-500">.</span></span>
+            </div>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Language Mastery Lab â€” the collective intelligence platform for language learners across Africa and the world.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-1">
+              {[{label:"Blog",href:"/blog"},{label:"Login",href:"/auth/login"},{label:"Sign Up",href:"/auth/sign-up"}].map((l) => (
+                <Link key={l.label} href={l.href} className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-violet-400 transition-colors">{l.label}</Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Vision */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-violet-500/10 rounded-lg flex items-center justify-center">
+                <Globe className="w-4 h-4 text-violet-400" />
+              </div>
+              <h4 className="font-black text-sm uppercase tracking-widest">Our Vision</h4>
+            </div>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              A world where language barriers no longer limit human potential. We envision every individual empowered to connect, create, and lead in any language â€” through the transformative power of collective learning.
+            </p>
+          </div>
+
+          {/* Mission */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                <Zap className="w-4 h-4 text-emerald-400" />
+              </div>
+              <h4 className="font-black text-sm uppercase tracking-widest">Our Mission</h4>
+            </div>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              To accelerate language mastery by combining expert tuition, peer accountability, and intelligent tools within organisations â€” making fluency achievable 5Ã— faster than traditional solo study.
+            </p>
+          </div>
+
+          {/* Confidentiality */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <Lock className="w-4 h-4 text-blue-400" />
+              </div>
+              <h4 className="font-black text-sm uppercase tracking-widest">Confidentiality</h4>
+            </div>
+            <ul className="text-slate-400 text-xs leading-relaxed space-y-2">
+              <li className="flex gap-2"><span className="text-violet-400 mt-0.5">â€¢</span>Your personal data and learning progress are encrypted and never shared with third parties.</li>
+              <li className="flex gap-2"><span className="text-violet-400 mt-0.5">â€¢</span>Organisation data is isolated with Row-Level Security. Zero cross-org data leakage.</li>
+              <li className="flex gap-2"><span className="text-violet-400 mt-0.5">â€¢</span>You may request full deletion of your account and data at any time.</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t border-white/5">
+          <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <p className="text-slate-600 text-[10px] tracking-[0.2em] uppercase font-bold">
+              Â© 2026 LML â€” Language Mastery Lab. All rights reserved.
+            </p>
+            <div className="flex gap-6 text-[10px] font-black tracking-widest text-slate-600 uppercase">
+              <span className="hover:text-violet-400 cursor-pointer transition-colors">Privacy Policy</span>
+              <span className="hover:text-violet-400 cursor-pointer transition-colors">Terms of Use</span>
+              <Link href="/blog" className="hover:text-violet-400 transition-colors">Blog</Link>
+            </div>
           </div>
         </div>
       </footer>

@@ -4,6 +4,7 @@ import { Header } from "../../components/header";
 import { notFound } from "next/navigation";
 import { BookOpen, Clock, ArrowLeft, Tag } from "lucide-react";
 import Link from "next/link";
+import { BlogReadTracker } from "../components/blog-read-tracker";
 
 export default async function BlogPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -54,6 +55,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ id: s
               <div className="prose dark:prose-invert max-w-none prose-headings:font-bold prose-a:text-violet-500 prose-img:rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: post.content || "<p>No content available.</p>" }}
               />
+
+              {/* Mark as Read tracker */}
+              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5">
+                <BlogReadTracker postId={post.id} />
+              </div>
             </div>
           </div>
         </main>

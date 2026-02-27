@@ -47,7 +47,7 @@ export default async function StudentDashboard() {
     .select("*", { count: "exact", head: true })
     .eq("author_id", user?.id);
 
-  // 2. Fetch Group Stats (Collective Performance)
+  // 4. Fetch Group Stats (Collective Performance)
   let groupAverage = 0;
   let teammatesCount = 0;
   if (profile?.group_id) {
@@ -55,10 +55,54 @@ export default async function StudentDashboard() {
       .from("profiles")
       .select("quiz_attempts(score)")
       .eq("group_id", profile.group_id);
-    
     const allScores = groupData?.flatMap(p => p.quiz_attempts.map(a => (a as any).score)) || [];
     groupAverage = allScores.length > 0 ? (allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
     teammatesCount = (groupData?.length || 1);
+  }
+
+  // 5. Global XP Rank
+  const { data: profileXpRow } = await supabase.from("profiles").select("xp").eq("id", user?.id).single() as any;
+  const userXp = profileXpRow?.xp ?? 0;
+  const [{ count: usersAhead }, { count: totalForRank }] = await Promise.all([
+    supabase.from("profiles").select("*", { count: "exact", head: true }).gt("xp", userXp),
+    supabase.from("profiles").select("*", { count: "exact", head: true }),
+  ]);
+  const rankPercent = totalForRank && totalForRank > 0
+    ? Math.max(1, Math.round(((usersAhead ?? 0) + 1) / totalForRank * 100))
+    : null;
+  const globalRankLabel = rankPercent ? `Top ${rankPercent}%` : "Unranked";
+
+  // 6. Next Lesson to complete
+  const { data: allLessons } = await supabase
+    .from("lessons")
+    .select("id, title, order_index")
+    .order("order_index", { ascending: true })
+    .limit(30);
+  const totalLessonsCount = allLessons?.length ?? 0;
+  const { data: completedProgress } = await supabase
+    .from("user_lesson_progress")
+    .select("lesson_id")
+    .eq("user_id", user?.id)
+    .eq("completed", true);
+  const completedIds = new Set((completedProgress ?? []).map((p: any) => p.lesson_id));
+  const nextLesson = allLessons?.find((l: any) => !completedIds.has(l.id)) ?? allLessons?.[0] ?? null;
+
+  // 7. Top groups for formation ranking
+  const { data: allGroups } = await supabase.from("groups").select("id, name").limit(10);
+  let topGroups: { id: string; name: string; avgScore: number }[] = [];
+  if (allGroups && allGroups.length > 0) {
+    const groupScores = await Promise.all(
+      allGroups.map(async (g: any) => {
+        const { data: members } = await supabase
+          .from("profiles")
+          .select("quiz_attempts(score)")
+          .eq("group_id", g.id);
+        const scores = members?.flatMap((m: any) => m.quiz_attempts.map((a: any) => a.score)) ?? [];
+        const avg = scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : 0;
+        return { id: g.id, name: g.name, avgScore: avg };
+      })
+    );
+    topGroups = groupScores.sort((a, b) => b.avgScore - a.avgScore).slice(0, 3);
   }
 
   // 3. Fetch Next Upcoming Organization-Wide Meeting
@@ -114,7 +158,7 @@ export default async function StudentDashboard() {
                 </div>
                 <div className="pr-4">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Rank</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Top 12%</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{globalRankLabel}</p>
                 </div>
               </div>
             </div>
@@ -173,11 +217,11 @@ export default async function StudentDashboard() {
                       <div className="flex-1 space-y-2">
                         <div className="flex justify-between items-start">
                           <span className="text-[10px] font-bold bg-violet-100 dark:bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-md uppercase tracking-widest">Current Module</span>
-                          <span className="text-xs font-medium text-slate-400">1 of 12 lessons</span>
+                          <span className="text-xs font-medium text-slate-400">{lessonsCompleted ?? 0} of {totalLessonsCount} lessons</span>
                         </div>
-                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">French Mastery Foundations</h4>
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">{nextLesson?.title ?? "No lessons yet"}</h4>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
-                          <div className="bg-violet-600 h-full w-1/3 rounded-full" />
+                          <div className="bg-violet-600 h-full rounded-full transition-all" style={{ width: totalLessonsCount > 0 ? `${Math.round(((lessonsCompleted ?? 0) / totalLessonsCount) * 100)}%` : "0%" }} />
                         </div>
                       </div>
                       <div className="flex items-center">
@@ -194,17 +238,31 @@ export default async function StudentDashboard() {
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Formation Ranking</h3>
                  </div>
                  
-                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/5 p-5 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                       <span className="text-xs font-bold text-slate-400">#1</span>
-                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate mx-4">Elite Formation</span>
-                       <span className="text-xs font-bold text-emerald-500 ml-auto">18.4</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 border border-violet-500/20 bg-violet-500/5 rounded-lg">
-                       <span className="text-xs font-bold text-violet-600">#2</span>
-                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate mx-4">{displayGroupName || "Your Team"}</span>
-                       <span className="text-xs font-bold text-violet-600 ml-auto">{groupAverage.toFixed(1)}</span>
-                    </div>
+                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/5 p-5 shadow-sm space-y-3">
+                    {topGroups.length > 0 ? topGroups.map((g, i) => {
+                      const isMyGroup = g.id === profile?.group_id;
+                      return (
+                        <div key={g.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                          isMyGroup
+                            ? "border border-violet-500/20 bg-violet-500/5"
+                            : "bg-slate-50 dark:bg-slate-800/50"
+                        }`}>
+                          <span className={`text-xs font-bold ${ isMyGroup ? "text-violet-600" : "text-slate-400" }`}>#{i + 1}</span>
+                          <span className={`text-xs font-bold truncate mx-4 ${ isMyGroup ? "text-violet-700 dark:text-violet-300" : "text-slate-900 dark:text-white" }`}>
+                            {g.name}{isMyGroup ? " (You)" : ""}
+                          </span>
+                          <span className={`text-xs font-bold ml-auto ${ isMyGroup ? "text-violet-600" : "text-emerald-500" }`}>
+                            {g.avgScore.toFixed(1)}
+                          </span>
+                        </div>
+                      );
+                    }) : (
+                      <div className="flex items-center justify-between p-3 border border-violet-500/20 bg-violet-500/5 rounded-lg">
+                        <span className="text-xs font-bold text-violet-600">#1</span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white truncate mx-4">{displayGroupName || "Your Team"}</span>
+                        <span className="text-xs font-bold text-violet-600 ml-auto">{groupAverage.toFixed(1)}</span>
+                      </div>
+                    )}
                     <Link href="/protected/student-board/ranking" className="block text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pt-2 hover:text-violet-600 transition-colors">
                       Enter the Arena
                     </Link>

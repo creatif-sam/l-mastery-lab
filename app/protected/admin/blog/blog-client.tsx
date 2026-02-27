@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Edit2, Trash2, Eye, Send, BookOpen, Clock, CheckCircle, X, Upload, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, Send, BookOpen, Clock, CheckCircle, X, Upload, Loader2, Users, BarChart2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,10 +23,12 @@ export function BlogManagementClient({
   initialPosts,
   authorId,
   authorName,
+  readStats = {},
 }: {
   initialPosts: any[];
   authorId: string;
   authorName: string;
+  readStats?: Record<string, { count: number; avgSeconds: number }>;
 }) {
   const supabase = createClient();
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -187,6 +189,26 @@ export function BlogManagementClient({
               <h4 className="font-bold text-slate-800 dark:text-white text-sm line-clamp-2 mb-1">{post.title}</h4>
               {post.excerpt && <p className="text-xs text-slate-400 line-clamp-2 mb-3">{post.excerpt}</p>}
               <p className="text-[10px] text-slate-400 mb-3">By {(post.profiles as any)?.full_name || authorName} · {new Date(post.created_at).toLocaleDateString()}</p>
+
+              {/* Read Stats Badge */}
+              {readStats[post.id] ? (
+                <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <Users size={10} />
+                    {readStats[post.id].count} read{readStats[post.id].count !== 1 ? "s" : ""}
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500">
+                    <Clock size={10} />
+                    avg {Math.floor(readStats[post.id].avgSeconds / 60)}m {readStats[post.id].avgSeconds % 60}s
+                  </div>
+                </div>
+              ) : (
+                post.status === "published" && (
+                  <div className="flex items-center gap-1 mb-3 text-[10px] text-slate-300 dark:text-slate-600">
+                    <BarChart2 size={10} /> No reads yet
+                  </div>
+                )
+              )}
               <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-white/5">
                 <button onClick={() => handlePreview(post)} className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors">
                   <Eye size={11} />
