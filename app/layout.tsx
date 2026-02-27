@@ -13,7 +13,7 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "Language Mastery Lab",
-  description: "A collective intelligence platform for language learning, powered by AI and human collaboration.",
+  description: "Mastering languages through collaboration with AI and human intelligence.",
 };
 
 const geistSans = Geist({

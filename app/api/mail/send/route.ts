@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export const dynamic = "force-dynamic";
 
 // Admin client with service role key — can read auth.users
 function getAdminClient() {
@@ -16,6 +16,7 @@ function getAdminClient() {
 
 export async function POST(req: NextRequest) {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const supabase = await createClient();
     const { campaignId, subject, body, recipientType, customEmails } = await req.json();
 

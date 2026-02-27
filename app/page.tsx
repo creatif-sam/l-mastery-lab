@@ -1,13 +1,20 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { UserCircle, Sparkles, ArrowRight, Globe, Lock, Zap } from "lucide-react";
+import { UserCircle, Sparkles, ArrowRight } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { CollaborativeAnimation } from "@/components/collaborative-animation";
+import { FooterSection } from "@/components/footer-section";
+import { LanguageSwitcher } from "@/components/language-switcher";
+
+type Lang = "en" | "fr";
 
 export default function HomePage() {
+  const [siteLang, setSiteLang] = useState<Lang>("en");
+  const handleLangChange = useCallback((l: Lang) => setSiteLang(l), []);
+
   const [currentLangIndex, setCurrentLangIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -40,6 +47,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white transition-colors duration-300 font-sans antialiased flex flex-col">
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.06),transparent_60%)] pointer-events-none" />
+
+      {/* Floating language switcher */}
+      <LanguageSwitcher onLanguageChange={handleLangChange} />
 
       {/* NAV */}
       <nav className="relative z-50 w-full border-b border-slate-200 dark:border-white/5 bg-white/70 dark:bg-black/70 backdrop-blur-xl px-6 py-3">
@@ -110,83 +120,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* === SOLID FOOTER === */}
-      <footer className="relative z-10 bg-slate-950 text-white mt-auto">
-        {/* Main grid */}
-        <div className="max-w-7xl mx-auto px-6 pt-14 pb-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-
-          {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-violet-600 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-lg shadow-violet-500/30">L</div>
-              <span className="text-xl font-black tracking-tighter">LML<span className="text-violet-500">.</span></span>
-            </div>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Language Mastery Lab â€” the collective intelligence platform for language learners across Africa and the world.
-            </p>
-            <div className="flex flex-wrap gap-4 pt-1">
-              {[{label:"Blog",href:"/blog"},{label:"Login",href:"/auth/login"},{label:"Sign Up",href:"/auth/sign-up"}].map((l) => (
-                <Link key={l.label} href={l.href} className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-violet-400 transition-colors">{l.label}</Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Vision */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-violet-500/10 rounded-lg flex items-center justify-center">
-                <Globe className="w-4 h-4 text-violet-400" />
-              </div>
-              <h4 className="font-black text-sm uppercase tracking-widest">Our Vision</h4>
-            </div>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              A world where language barriers no longer limit human potential. We envision every individual empowered to connect, create, and lead in any language â€” through the transformative power of collective learning.
-            </p>
-          </div>
-
-          {/* Mission */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-emerald-400" />
-              </div>
-              <h4 className="font-black text-sm uppercase tracking-widest">Our Mission</h4>
-            </div>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              To accelerate language mastery by combining expert tuition, peer accountability, and intelligent tools within organisations â€” making fluency achievable 5Ã— faster than traditional solo study.
-            </p>
-          </div>
-
-          {/* Confidentiality */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                <Lock className="w-4 h-4 text-blue-400" />
-              </div>
-              <h4 className="font-black text-sm uppercase tracking-widest">Confidentiality</h4>
-            </div>
-            <ul className="text-slate-400 text-xs leading-relaxed space-y-2">
-              <li className="flex gap-2"><span className="text-violet-400 mt-0.5">â€¢</span>Your personal data and learning progress are encrypted and never shared with third parties.</li>
-              <li className="flex gap-2"><span className="text-violet-400 mt-0.5">â€¢</span>Organisation data is isolated with Row-Level Security. Zero cross-org data leakage.</li>
-              <li className="flex gap-2"><span className="text-violet-400 mt-0.5">â€¢</span>You may request full deletion of your account and data at any time.</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Bottom bar */}
-        <div className="border-t border-white/5">
-          <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <p className="text-slate-600 text-[10px] tracking-[0.2em] uppercase font-bold">
-              Â© 2026 LML â€” Language Mastery Lab. All rights reserved.
-            </p>
-            <div className="flex gap-6 text-[10px] font-black tracking-widest text-slate-600 uppercase">
-              <span className="hover:text-violet-400 cursor-pointer transition-colors">Privacy Policy</span>
-              <span className="hover:text-violet-400 cursor-pointer transition-colors">Terms of Use</span>
-              <Link href="/blog" className="hover:text-violet-400 transition-colors">Blog</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <FooterSection lang={siteLang} />
     </div>
   );
 }
