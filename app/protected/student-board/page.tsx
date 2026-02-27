@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { MeetingCard } from "./components/home/meeting-card";
 import { PhraseCard } from "./components/home/phrase-of-day";
+import { MeetingCalendar } from "./components/home/meeting-calendar";
 
 export default async function StudentDashboard() {
   const supabase = await createClient();
@@ -107,16 +108,31 @@ export default async function StudentDashboard() {
 
   // 3. Fetch Next Upcoming Organization-Wide Meeting
   let nextMeeting = null;
+  let allOrgMeetings: any[] = [];
   if (profile?.organization_id) {
+    const now = new Date().toISOString();
+    // next single meeting for the card
     const { data: meetingData } = await supabase
       .from("meetings")
       .select("*")
       .eq("organization_id", profile.organization_id)
-      .gte("start_time", new Date().toISOString())
+      .gte("start_time", now)
       .order("start_time", { ascending: true })
       .limit(1)
       .maybeSingle();
     nextMeeting = meetingData;
+
+    // all meetings for the next 3 months for the calendar
+    const threeMonthsOut = new Date();
+    threeMonthsOut.setMonth(threeMonthsOut.getMonth() + 3);
+    const { data: calMeetings } = await supabase
+      .from("meetings")
+      .select("id, title, platform, meeting_link, start_time")
+      .eq("organization_id", profile.organization_id)
+      .gte("start_time", now)
+      .lte("start_time", threeMonthsOut.toISOString())
+      .order("start_time", { ascending: true });
+    allOrgMeetings = calMeetings ?? [];
   }
 
   // 4. Fetch Bilingual Phrase of the Day
@@ -201,6 +217,7 @@ export default async function StudentDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 <MeetingCard meeting={nextMeeting} />
+                <MeetingCalendar meetings={allOrgMeetings} />
                 <PhraseCard phrase={dailyPhrase} />
 
                 <div className="space-y-6">

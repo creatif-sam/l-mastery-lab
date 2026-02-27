@@ -20,6 +20,18 @@ export default async function TutorSettingsPage() {
     ? await supabase.from("organizations").select("name").eq("id", profile.organization_id).single()
     : { data: null };
 
+  // Fetch upcoming meetings created by this tutor
+  const { data: upcomingMeetings } = profile.organization_id
+    ? await supabase
+        .from("meetings")
+        .select("id, title, platform, meeting_link, start_time")
+        .eq("organization_id", profile.organization_id)
+        .eq("created_by", user.id)
+        .gte("start_time", new Date().toISOString())
+        .order("start_time", { ascending: true })
+        .limit(20)
+    : { data: [] };
+
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0B0F1A]">
       <TutorSidebar />
@@ -29,6 +41,7 @@ export default async function TutorSettingsPage() {
           <TutorSettingsClient
             profile={{ ...profile, email: user.email ?? "" }}
             orgName={org?.name ?? null}
+            upcomingMeetings={upcomingMeetings ?? []}
           />
         </main>
       </div>
