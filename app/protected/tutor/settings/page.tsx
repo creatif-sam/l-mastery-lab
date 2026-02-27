@@ -9,28 +9,51 @@ export default async function TutorSettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return redirect("/auth/login");
 
+  // 1. Role check using a minimal, safe query
+  const { data: roleRow } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!roleRow || roleRow.role !== "tutor") return redirect("/");
+
+  // 2. Full profile — select each column individually so a missing optional
+  //    column doesn't null-out the entire row
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, full_name, role, avatar_url, organization_id, created_at")
     .eq("id", user.id)
-    .single();
-  if (!profile || profile.role !== "tutor") return redirect("/");
+    .single() as any;
 
-  const { data: org } = profile.organization_id
-    ? await supabase.from("organizations").select("name").eq("id", profile.organization_id).single()
+  const safeProfile = {
+    id:              profile?.id              ?? user.id,
+    full_name:       profile?.full_name       ?? "",
+    role:            profile?.role            ?? "tutor",
+    avatar_url:      profile?.avatar_url      ?? null,
+    organization_id: profile?.organization_id ?? null,
+    created_at:      profile?.created_at      ?? new Date().toISOString(),
+    email:           user.email               ?? "",
+  };
+
+  const { data: org } = safeProfile.organization_id
+    ? await supabase.from("organizations").select("name").eq("id", safeProfile.organization_id).single()
     : { data: null };
 
-  // Fetch upcoming meetings created by this tutor
-  const { data: upcomingMeetings } = profile.organization_id
+  // 3. Fetch upcoming meetings for this org (no created_by filter — handle in UI)
+  const { data: upcomingMeetings } = safeProfile.organization_id
     ? await supabase
         .from("meetings")
-        .select("id, title, platform, meeting_link, start_time")
-        .eq("organization_id", profile.organization_id)
-        .eq("created_by", user.id)
+        .select("id, title, platform, meeting_link, start_time, created_by")
+        .eq("organization_id", safeProfile.organization_id)
         .gte("start_time", new Date().toISOString())
         .order("start_time", { ascending: true })
         .limit(20)
     : { data: [] };
+
+  // Keep only meetings this tutor created (safe even if created_by is null)
+  const myMeetings = (upcomingMeetings ?? []).filter(
+    (m: any) => m.created_by === user.id
+  );
 
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0B0F1A]">
@@ -39,9 +62,9 @@ export default async function TutorSettingsPage() {
         <TutorHeader title="Settings" subtitle="Manage your profile and account" />
         <main className="flex-1 overflow-y-auto p-6">
           <TutorSettingsClient
-            profile={{ ...profile, email: user.email ?? "" }}
+            profile={safeProfile}
             orgName={org?.name ?? null}
-            upcomingMeetings={upcomingMeetings ?? []}
+            upcomingMeetings={myMeetings}
           />
         </main>
       </div>
