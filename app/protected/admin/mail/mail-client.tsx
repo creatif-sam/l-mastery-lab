@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, FileText, Plus, Send, Clock, Eye, Trash2, BarChart2, Users, BookOpen, UserCheck } from "lucide-react";
+import { Mail, FileText, Plus, Send, Clock, Eye, Trash2, BarChart2, Users, BookOpen, UserCheck, MessageSquare, Wrench, HelpCircle, AlertCircle, CheckCircle2, Circle } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { NewCampaignModal } from "./components/new-campaign-modal";
@@ -27,6 +27,17 @@ type Template = {
   created_at: string;
 };
 
+type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  status: "unread" | "read";
+  created_at: string;
+};
+
 type User = { id: string; full_name: string; role: string; target_language?: string };
 
 interface MailClientProps {
@@ -34,18 +45,57 @@ interface MailClientProps {
   initialTemplates: Template[];
   stats: { total: number; drafts: number; sent: number; totalEmailsSent: number };
   allUsers: User[];
+  initialContactMessages: ContactMessage[];
 }
 
-export function MailClient({ initialCampaigns, initialTemplates, stats, allUsers }: MailClientProps) {
+export function MailClient({ initialCampaigns, initialTemplates, stats, allUsers, initialContactMessages }: MailClientProps) {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<"campaigns" | "templates">("campaigns");
+  const [activeTab, setActiveTab] = useState<"campaigns" | "templates" | "inbox">("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<"all" | "draft" | "sent">("all");
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>(initialContactMessages);
+  const [expandedMessage, setExpandedMessage] = useState<string | null>(null);
   const [showNewCampaign, setShowNewCampaign] = useState(false);
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [previewCampaign, setPreviewCampaign] = useState<Campaign | null>(null);
   const [newTemplate, setNewTemplate] = useState({ name: "", category: "announcement", subject: "", body: "" });
+
+  const unreadCount = contactMessages.filter((m) => m.status === "unread").length;
+
+  const handleMarkRead = async (id: string) => {
+    await supabase.from("contact_messages").update({ status: "read" }).eq("id", id);
+    setContactMessages((prev) => prev.map((m) => m.id === id ? { ...m, status: "read" } : m));
+  };
+
+  const handleDeleteContact = async (id: string) => {
+    await supabase.from("contact_messages").delete().eq("id", id);
+    setContactMessages((prev) => prev.filter((m) => m.id !== id));
+    toast.success("Message deleted");
+  };
+
+  const categoryIcon = (cat: string) => {
+    const icons: Record<string, any> = {
+      technical: Wrench,
+      account: HelpCircle,
+      billing: AlertCircle,
+      general: MessageSquare,
+      feedback: CheckCircle2,
+    };
+    const I = icons[cat] || MessageSquare;
+    return <I size={12} />;
+  };
+
+  const categoryColor = (cat: string) => {
+    const colors: Record<string, string> = {
+      technical: "bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400",
+      account: "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
+      billing: "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+      general: "bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400",
+      feedback: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
+    };
+    return colors[cat] || colors.general;
+  };
 
   const filteredCampaigns = campaigns.filter((c) =>
     campaignFilter === "all" ? true : c.status === campaignFilter
@@ -149,6 +199,17 @@ export function MailClient({ initialCampaigns, initialTemplates, stats, allUsers
             className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors ${activeTab === "templates" ? "border-b-2 border-indigo-600 text-indigo-600" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
           >
             <FileText size={15} /> Email Templates ({templates.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("inbox")}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors relative ${activeTab === "inbox" ? "border-b-2 border-indigo-600 text-indigo-600" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+          >
+            <MessageSquare size={15} /> Contact Inbox
+            {unreadCount > 0 && (
+              <span className="absolute top-3 right-3 min-w-[18px] h-[18px] bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1">
+                {unreadCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -268,6 +329,98 @@ export function MailClient({ initialCampaigns, initialTemplates, stats, allUsers
               ))}
               {templates.length === 0 && (
                 <div className="col-span-2 py-12 text-center text-slate-400 text-sm">No templates yet</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Contact Inbox Tab */}
+        {activeTab === "inbox" && (
+          <div>
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{contactMessages.length} message{contactMessages.length !== 1 ? "s" : ""}</p>
+                {unreadCount > 0 && (
+                  <span className="text-[10px] font-black bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
+                    {unreadCount} unread
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium">Submissions from lml@gen116.com contact form</p>
+            </div>
+
+            <div className="divide-y divide-slate-100 dark:divide-white/5">
+              {contactMessages.map((msg) => (
+                <div key={msg.id} className={`group transition-colors ${msg.status === "unread" ? "bg-blue-50/40 dark:bg-blue-500/5" : "hover:bg-slate-50 dark:hover:bg-slate-800/30"}`}>
+                  <div
+                    className="flex items-start gap-4 px-5 py-4 cursor-pointer"
+                    onClick={() => {
+                      if (msg.status === "unread") handleMarkRead(msg.id);
+                      setExpandedMessage(expandedMessage === msg.id ? null : msg.id);
+                    }}
+                  >
+                    {/* Unread dot */}
+                    <div className="mt-1.5 shrink-0">
+                      {msg.status === "unread"
+                        ? <div className="w-2 h-2 rounded-full bg-[#0056D2]" />
+                        : <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-white/10" />
+                      }
+                    </div>
+
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white font-black text-xs shrink-0">
+                      {msg.name?.[0]?.toUpperCase()}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 ${categoryColor(msg.category)}`}>
+                          {categoryIcon(msg.category)} {msg.category}
+                        </span>
+                        <p className="text-[10px] text-slate-400">{format(new Date(msg.created_at), "dd MMM yyyy, HH:mm")}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-semibold truncate ${msg.status === "unread" ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300"}`}>
+                          {msg.subject}
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-400 truncate">{msg.name} &lt;{msg.email}&gt;</p>
+                    </div>
+
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteContact(msg.id); }}
+                      className="shrink-0 w-7 h-7 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+
+                  {/* Expanded message */}
+                  {expandedMessage === msg.id && (
+                    <div className="px-5 pb-5 ml-14">
+                      <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">From: <span className="font-normal">{msg.name} &lt;{msg.email}&gt;</span></p>
+                          <a
+                            href={`mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}`}
+                            className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                          >
+                            <Send size={10} /> Reply via Email
+                          </a>
+                        </div>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {contactMessages.length === 0 && (
+                <div className="py-16 text-center">
+                  <MessageSquare className="w-8 h-8 text-slate-200 dark:text-white/10 mx-auto mb-3" />
+                  <p className="text-slate-400 text-sm">No contact messages yet</p>
+                  <p className="text-slate-300 dark:text-white/20 text-xs mt-1">Messages from the contact form will appear here</p>
+                </div>
               )}
             </div>
           </div>

@@ -15,10 +15,12 @@ export default async function AdminMailPage() {
     { data: campaigns },
     { data: templates },
     { data: allUsers },
+    { data: contactMessages },
   ] = await Promise.all([
     supabase.from("email_campaigns").select("id, subject, body, recipient_type, custom_emails, status, recipients_count, created_at").order("created_at", { ascending: false }),
     supabase.from("email_templates").select("*").order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, full_name, role, target_language"),
+    supabase.from("contact_messages").select("*").order("created_at", { ascending: false }),
   ]);
 
   const stats = {
@@ -39,6 +41,7 @@ export default async function AdminMailPage() {
             initialTemplates={templates || []}
             stats={stats}
             allUsers={allUsers || []}
+            initialContactMessages={contactMessages || []}
           />
         </main>
       </div>

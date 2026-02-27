@@ -71,9 +71,13 @@ export function FooterSection({ lang = "en" }: { lang?: "en" | "fr" }) {
             </span>
           </div>
           <p className="text-slate-400 text-xs leading-relaxed">{t.tagline}</p>
+          <a href="mailto:lml@gen116.com" className="text-[10px] font-black text-violet-400 hover:text-violet-300 transition-colors tracking-wide">
+            lml@gen116.com
+          </a>
           <div className="flex flex-wrap gap-4 pt-1">
             {[
               { label: t.blog, href: "/blog" },
+              { label: lang === "fr" ? "Contact" : "Contact", href: "/contact" },
               { label: t.login, href: "/auth/login" },
               { label: t.signUp, href: "/auth/sign-up" },
             ].map((l) => (

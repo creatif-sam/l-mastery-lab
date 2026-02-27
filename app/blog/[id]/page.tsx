@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { Calendar, UserCircle, Tag, ArrowLeft } from "lucide-react";
+import { ShareButton } from "@/components/blog/share-button";
+import { Calendar, ArrowLeft } from "lucide-react";
 
 export default async function PublicBlogPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,6 +27,7 @@ export default async function PublicBlogPostPage({ params }: { params: Promise<{
             <ArrowLeft size={14} /> All Posts
           </Link>
           <div className="flex items-center gap-3">
+            <ShareButton title={post.title} />
             <ThemeSwitcher />
             <Link href="/auth/login" className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
               Login

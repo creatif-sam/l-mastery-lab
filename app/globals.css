@@ -66,3 +66,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Copy / Screenshot Protection ──────────────────────────────────────────
+   Applied via JS to <body> when the student-board is active.
+   Prevents text selection and hides content in print / capture media.
+─────────────────────────────────────────────────────────────────────────────*/
+body.copy-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Hide all content when the page is printed (best-effort screenshot guard) */
+@media print {
+  body.copy-protected * {
+    display: none !important;
+  }
+  body.copy-protected::after {
+    content: "Printing is not allowed on this page.";
+    display: block;
+    font-size: 1.5rem;
+    text-align: center;
+    margin-top: 4rem;
+    color: #666;
+  }
+}
