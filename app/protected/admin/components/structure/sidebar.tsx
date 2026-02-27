@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -17,6 +17,8 @@ import {
   MessageSquare,
   MessageCircle,
   Eye,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -28,6 +30,7 @@ export function AdminSidebar() {
   const router = useRouter();
   const supabase = createClient();
   const [isCollapsed, setIsCollapsed] = useState<boolean | null>(null);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     const savedState = localStorage.getItem("admin-sidebar-collapsed");
@@ -49,24 +52,28 @@ export function AdminSidebar() {
   if (isCollapsed === null) return <div className="hidden md:flex w-64 bg-slate-950 h-screen flex-shrink-0" />;
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Overview", href: "/protected/admin", exact: true },
-    { icon: Users, label: "Users", href: "/protected/admin/users" },
-    { icon: GraduationCap, label: "Tutors", href: "/protected/admin/tutors" },
-    { icon: BarChart3, label: "Analytics", href: "/protected/admin/analytics" },
-    { icon: MessageSquare, label: "Community", href: "/protected/admin/community" },
-    { icon: MessageCircle, label: "Messages", href: "/protected/admin/messages" },
-    { icon: Mail, label: "Mail Campaigns", href: "/protected/admin/mail" },
-    { icon: FileText, label: "Blog", href: "/protected/admin/blog" },
-    { icon: Bell, label: "Notifications", href: "/protected/admin/notifications" },
-    { icon: Settings, label: "Settings", href: "/protected/admin/settings" },
+    { icon: LayoutDashboard, label: "Overview",       href: "/protected/admin",              exact: true },
+    { icon: Users,           label: "Users",          href: "/protected/admin/users" },
+    { icon: GraduationCap,   label: "Tutors",         href: "/protected/admin/tutors" },
+    { icon: BarChart3,       label: "Analytics",      href: "/protected/admin/analytics" },
+    { icon: MessageSquare,   label: "Community",      href: "/protected/admin/community" },
+    { icon: MessageCircle,   label: "Messages",       href: "/protected/admin/messages" },
+    { icon: Mail,            label: "Mail Campaigns", href: "/protected/admin/mail" },
+    { icon: FileText,        label: "Blog",           href: "/protected/admin/blog" },
+    { icon: Bell,            label: "Notifications",  href: "/protected/admin/notifications" },
+    { icon: Settings,        label: "Settings",       href: "/protected/admin/settings" },
   ];
+
+  // Top 4 for mobile bottom bar; remainder in "More" popup
+  const bottomPrimary = menuItems.slice(0, 4);
+  const bottomMore    = menuItems.slice(4);
 
   const isActive = (item: { href: string; exact?: boolean }) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href);
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* ── DESKTOP SIDEBAR ── */}
       <nav className={cn(
         "hidden md:flex bg-slate-950 border-r border-white/5 p-4 flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out relative z-[60] flex-shrink-0",
         isCollapsed ? "w-20" : "w-64"
@@ -160,6 +167,99 @@ export function AdminSidebar() {
           {!isCollapsed && <span className="text-sm font-medium">Sign Out</span>}
         </button>
       </nav>
+
+      {/* ── MOBILE BOTTOM NAV ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-white/5 safe-area-bottom">
+        <div className="flex items-stretch h-16">
+          {bottomPrimary.map((item) => {
+            const active = isActive(item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors",
+                  active ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                <item.icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                <span className="text-[9px] font-bold tracking-wide leading-none">
+                  {item.label.split(" ")[0]}
+                </span>
+              </Link>
+            );
+          })}
+
+          {/* More Button */}
+          <button
+            onClick={() => setShowMore(true)}
+            className={cn(
+              "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors",
+              showMore ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            <MoreHorizontal size={20} strokeWidth={1.8} />
+            <span className="text-[9px] font-bold tracking-wide leading-none">More</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── MOBILE "MORE" POPUP DRAWER ── */}
+      {showMore && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
+            onClick={() => setShowMore(false)}
+          />
+          <div className="md:hidden fixed bottom-16 left-0 right-0 z-[56] bg-slate-900 border-t border-white/10 rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+            <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">More</span>
+              <button
+                onClick={() => setShowMore(false)}
+                className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-1 px-3 pb-3">
+              {bottomMore.map((item) => {
+                const active = isActive(item);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setShowMore(false)}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl transition-all active:scale-95",
+                      active
+                        ? "bg-indigo-600/20 text-indigo-400"
+                        : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    <item.icon size={22} strokeWidth={active ? 2.5 : 1.8} />
+                    <span className="text-[10px] font-bold text-center leading-tight">{item.label}</span>
+                  </Link>
+                );
+              })}
+              <Link
+                href="/protected/student-board"
+                onClick={() => setShowMore(false)}
+                className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl text-emerald-400 hover:bg-emerald-500/10 transition-all active:scale-95"
+              >
+                <Eye size={22} strokeWidth={1.8} />
+                <span className="text-[10px] font-bold text-center leading-tight">Student View</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all active:scale-95"
+              >
+                <LogOut size={22} strokeWidth={1.8} />
+                <span className="text-[10px] font-bold leading-tight">Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

@@ -171,22 +171,37 @@ export function AdminUsersClient({ initialUsers }: { initialUsers: UserProfile[]
 
       {/* Edit Role Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-white/10">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">Change Role</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-sm shadow-2xl border border-slate-200 dark:border-white/10 animate-in slide-in-from-bottom duration-300 sm:slide-in-from-bottom-0">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-slate-900 dark:text-white text-lg">Change Role</h3>
+              <button
+                onClick={() => setEditingUser(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              >
+                <span className="text-lg leading-none">&times;</span>
+              </button>
+            </div>
             <p className="text-sm text-slate-500 mb-5">Update role for <span className="font-semibold text-slate-700 dark:text-slate-300">{editingUser.full_name}</span></p>
-            <select
-              value={editRole}
-              onChange={(e) => setEditRole(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none mb-5"
-            >
-              <option value="student">Student</option>
-              <option value="tutor">Tutor</option>
-              <option value="admin">Admin</option>
-            </select>
+            {/* Role Buttons */}
+            <div className="grid grid-cols-3 gap-2 mb-5">
+              {["student", "tutor", "admin"].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setEditRole(r)}
+                  className={`py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                    editRole === r
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-lg"
+                      : "border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-indigo-300"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-3">
-              <button onClick={() => setEditingUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-              <button onClick={handleRoleChange} className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors">Save Changes</button>
+              <button onClick={() => setEditingUser(null)} className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+              <button onClick={handleRoleChange} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors">Save Changes</button>
             </div>
           </div>
         </div>

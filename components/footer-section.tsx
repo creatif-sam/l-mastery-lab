@@ -21,13 +21,13 @@ export function FooterSection({ lang = "en" }: { lang?: "en" | "fr" }) {
   const t = {
     tagline:
       lang === "fr"
-        ? "Language Mastery Lab — la plateforme d'intelligence collective pour les apprenants de langues en Afrique et dans le monde."
-        : "Language Mastery Lab — the collective intelligence platform for language learners across Africa and the world.",
+        ? "Language Mastery Lab — la plateforme d'intelligence collective pour les apprenants de langues en Afrique Sub-saharienne."
+        : "Language Mastery Lab — the collective intelligence platform for language learners across Sub-Saharan Africa.",
     vision: lang === "fr" ? "Notre Vision" : "Our Vision",
     visionText:
       lang === "fr"
-        ? "Un monde où les barrières linguistiques ne limitent plus le potentiel humain. Nous imaginons chaque individu capable de se connecter, de créer et de diriger dans n'importe quelle langue."
-        : "A world where language barriers no longer limit human potential. We envision every individual empowered to connect, create, and lead in any language — through the transformative power of collective learning.",
+        ? "Un continent où les barrières linguistiques ne limitent plus le potentiel humain. Nous imaginons chaque individu capable de se connecter, de créer et de diriger dans n'importe quelle langue."
+        : "A continent where language barriers no longer limit human potential. We envision every individual empowered to connect, create, and lead in any language — through the transformative power of collective learning.",
     mission: lang === "fr" ? "Notre Mission" : "Our Mission",
     missionText:
       lang === "fr"

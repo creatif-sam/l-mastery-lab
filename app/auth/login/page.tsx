@@ -33,20 +33,43 @@ export default function Page() {
           <Link href="/" className="text-2xl font-black tracking-tighter text-[#003366]">
             LML<span className="text-violet-600">.</span>
           </Link>
-          <button
-            onClick={() => setLang(lang === "EN" ? "FR" : "EN")}
-            className="flex items-center gap-2 px-4 py-2 border border-zinc-200 rounded-full text-[10px] font-black text-zinc-600 hover:border-violet-600 hover:text-violet-600 transition-all bg-white shadow-sm active:scale-95"
-          >
-            <Globe className="w-3 h-3 text-violet-500" />
-            <span>{lang === "EN" ? "🇺🇸 ENGLISH" : "🇫🇷 FRANÇAIS"}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="text-[10px] font-black tracking-widest text-zinc-500 hover:text-[#003366] uppercase transition-colors"
+            >
+              Home
+            </Link>
+            <span className="text-zinc-200">|</span>
+            <Link
+              href="/blog"
+              className="text-[10px] font-black tracking-widest text-zinc-500 hover:text-violet-600 uppercase transition-colors"
+            >
+              Blog
+            </Link>
+            <span className="text-zinc-200">|</span>
+            <button
+              onClick={() => setLang(lang === "EN" ? "FR" : "EN")}
+              className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 rounded-full text-[10px] font-black text-zinc-600 hover:border-violet-600 hover:text-violet-600 transition-all bg-white shadow-sm active:scale-95"
+            >
+              <Globe className="w-3 h-3 text-violet-500" />
+              <span>{lang === "EN" ? "🇺🇸 EN" : "🇫🇷 FR"}</span>
+            </button>
+          </div>
         </div>
 
         {/* The Form */}
         <LoginForm />
 
         {/* Mobile-only Footer */}
-        <div className="mt-8 lg:hidden text-center">
+        <div className="mt-8 lg:hidden flex flex-col items-center gap-3">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-[10px] font-black tracking-widest text-zinc-400 hover:text-violet-600 uppercase transition-colors">Home</Link>
+            <span className="text-zinc-200">|</span>
+            <Link href="/blog" className="text-[10px] font-black tracking-widest text-zinc-400 hover:text-violet-600 uppercase transition-colors">Blog</Link>
+            <span className="text-zinc-200">|</span>
+            <Link href="/auth/sign-up" className="text-[10px] font-black tracking-widest text-zinc-400 hover:text-violet-600 uppercase transition-colors">Sign Up</Link>
+          </div>
           <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
             © 2026 Language Mastery Lab
           </p>

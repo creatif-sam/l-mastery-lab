@@ -203,12 +203,12 @@ export function AdminTutorsClient({
 
       {/* Assign Organization Modal */}
       {assigningTutor && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-white/10">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-sm shadow-2xl border border-slate-200 dark:border-white/10 animate-in slide-in-from-bottom duration-300 sm:slide-in-from-bottom-0">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-900 dark:text-white text-lg">Assign Organization</h3>
-              <button onClick={() => setAssigningTutor(null)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <X size={16} className="text-slate-400" />
+              <button onClick={() => setAssigningTutor(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                <X size={16} />
               </button>
             </div>
             <div className="flex items-center gap-3 mb-5 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
@@ -225,16 +225,32 @@ export function AdminTutorsClient({
               </div>
             </div>
             <p className="text-xs text-slate-500 mb-2 font-medium">Select Organization</p>
-            <select
-              value={selectedOrg}
-              onChange={(e) => setSelectedOrg(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none mb-5"
-            >
-              <option value="none">— Remove from organization —</option>
+            <div className="space-y-2 mb-5 max-h-48 overflow-y-auto">
+              <button
+                onClick={() => setSelectedOrg("none")}
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-sm border transition-all ${
+                  selectedOrg === "none"
+                    ? "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 font-semibold"
+                    : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                }`}
+              >
+                — Remove from organization —
+              </button>
               {organizations.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
+                <button
+                  key={o.id}
+                  onClick={() => setSelectedOrg(o.id)}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl text-sm border transition-all flex items-center gap-2 ${
+                    selectedOrg === o.id
+                      ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-semibold"
+                      : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Building2 size={14} className="shrink-0" />
+                  {o.name}
+                </button>
               ))}
-            </select>
+            </div>
             {organizations.length === 0 && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mb-4 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 rounded-lg">
                 No organizations found. Create one in database first.
@@ -243,14 +259,14 @@ export function AdminTutorsClient({
             <div className="flex gap-3">
               <button
                 onClick={() => setAssigningTutor(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAssign}
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Assignment"}
               </button>
