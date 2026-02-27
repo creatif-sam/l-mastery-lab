@@ -30,7 +30,13 @@ export async function POST(req: NextRequest) {
         // Get auth emails for these user IDs
         const userIds = profiles.map((p: any) => p.id);
         // We use admin client to get emails
-        const { data: authUsers } = await supabase.rpc("get_user_emails", { user_ids: userIds }).catch(() => ({ data: null }));
+        let authUsers: any[] | null = null;
+        try {
+          const { data } = await supabase.rpc("get_user_emails", { user_ids: userIds });
+          authUsers = data;
+        } catch {
+          authUsers = null;
+        }
 
         emailList = profiles.map((p: any, i: number) => ({
           email: authUsers?.[i]?.email || `user${i}@placeholder.com`,
@@ -56,7 +62,7 @@ export async function POST(req: NextRequest) {
           .replace(/\{\{email\}\}/g, recipient.email);
 
         const { error } = await resend.emails.send({
-          from: "LML Platform <onboarding@resend.dev>",
+          from: "LML Platform <learning@gen116.com>",
           to: [recipient.email],
           subject,
           html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">${personalizedBody}</div>`,

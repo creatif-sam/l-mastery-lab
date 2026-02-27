@@ -13,6 +13,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  GraduationCap,
+  MessageSquare,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -47,7 +50,10 @@ export function AdminSidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/protected/admin", exact: true },
     { icon: Users, label: "Users", href: "/protected/admin/users" },
+    { icon: GraduationCap, label: "Tutors", href: "/protected/admin/tutors" },
     { icon: BarChart3, label: "Analytics", href: "/protected/admin/analytics" },
+    { icon: MessageSquare, label: "Community", href: "/protected/admin/community" },
+    { icon: MessageCircle, label: "Messages", href: "/protected/admin/messages" },
     { icon: Mail, label: "Mail Campaigns", href: "/protected/admin/mail" },
     { icon: FileText, label: "Blog", href: "/protected/admin/blog" },
     { icon: Bell, label: "Notifications", href: "/protected/admin/notifications" },

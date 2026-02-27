@@ -27,7 +27,7 @@ export default async function AdminSettingsPage() {
                 bg: "bg-blue-500/10",
                 items: [
                   { label: "Mail Provider", value: "Resend", desc: "Connected via RESEND_API_KEY" },
-                  { label: "Sender Address", value: "onboarding@resend.dev", desc: "Update in API route" },
+                  { label: "Sender Address", value: "learning@gen116.com", desc: "Verified domain via Resend" },
                 ],
               },
               {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Heart, ThumbsUp, MessageCircle, Send, Image, X, Trophy, Star, Loader2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, ThumbsUp, MessageCircle, Send, Image, X, Trophy, Star, Loader2, Trash2, ChevronDown, ChevronUp, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -14,11 +14,21 @@ type Post = {
   loves_count: number;
   comments_count: number;
   created_at: string;
-  author: { id: string; full_name: string; role: string; community_points: number };
+  author: { id: string; full_name: string; role: string; community_points: number; avatar_url?: string };
 };
 
 type Reaction = { post_id: string; type: string };
-type LeaderEntry = { id: string; full_name: string; community_points: number; role: string };
+type LeaderEntry = { id: string; full_name: string; community_points: number; role: string; avatar_url?: string };
+
+function UserAvatar({ user, size = "md" }: { user: { full_name?: string; avatar_url?: string; role?: string }; size?: "sm" | "md" }) {
+  const initials = user.full_name ? user.full_name[0].toUpperCase() : "?";
+  const sizeClass = size === "sm" ? "w-7 h-7 text-xs" : "w-10 h-10 text-sm";
+  const bg = user.role === "admin" ? "bg-red-500" : user.role === "tutor" ? "bg-blue-500" : "bg-violet-600";
+  if (user.avatar_url) {
+    return <img src={user.avatar_url} alt={user.full_name ?? ""} className={`${sizeClass} rounded-full object-cover flex-shrink-0`} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />;
+  }
+  return <div className={`${sizeClass} rounded-full flex-shrink-0 flex items-center justify-center text-white font-black ${bg}`}>{initials}</div>;
+}
 
 export function CommunityClient({
   currentUser,
@@ -27,22 +37,43 @@ export function CommunityClient({
   leaderboard,
 }: {
   currentUser: any;
-  initialPosts: Post[];
+  initialPosts: any[];
   myReactions: Reaction[];
   leaderboard: LeaderEntry[];
 }) {
   const supabase = createClient();
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [reactions, setReactions] = useState<Reaction[]>(myReactions);
   const [newPost, setNewPost] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [showImageInput, setShowImageInput] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [expandedComments, setExpandedComments] = useState<string[]>([]);
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [postComments, setPostComments] = useState<Record<string, any[]>>({});
   const [loadingComments, setLoadingComments] = useState<string[]>([]);
   const [myPoints, setMyPoints] = useState<number>(currentUser?.community_points ?? 0);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    const ext = file.name.split(".").pop();
+    const path = `community/${currentUser.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("community-images").upload(path, file, { upsert: true });
+    if (error) {
+      toast.error("Upload failed. Ensure the 'community-images' bucket exists in Supabase Storage.");
+      setUploadingImage(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from("community-images").getPublicUrl(path);
+    setImageUrl(publicUrl);
+    setShowImageInput(true);
+    toast.success("Image uploaded!");
+    setUploadingImage(false);
+  };
 
   const handlePost = async () => {
     if (!newPost.trim()) { toast.error("Write something first"); return; }
@@ -55,7 +86,7 @@ export function CommunityClient({
         content: newPost.trim(),
         image_url: imageUrl.trim() || null,
       })
-      .select(`id, content, image_url, likes_count, loves_count, comments_count, created_at, author:profiles!community_posts_author_id_fkey(id, full_name, role, community_points)`)
+      .select(`id, content, image_url, likes_count, loves_count, comments_count, created_at, author:profiles!community_posts_author_id_fkey(id, full_name, role, community_points, avatar_url)`)
       .single();
 
     if (error) { toast.error("Failed to post"); setPosting(false); return; }
@@ -164,9 +195,7 @@ export function CommunityClient({
         {/* Composer */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-4">
           <div className="flex gap-3">
-            <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm ${currentUser?.role === "admin" ? "bg-red-500" : currentUser?.role === "tutor" ? "bg-blue-500" : "bg-violet-600"}`}>
-              {currentUser?.full_name?.[0]?.toUpperCase() ?? "?"}
-            </div>
+            <UserAvatar user={currentUser ?? {}} size="md" />
             <div className="flex-1">
               <textarea
                 value={newPost}
@@ -175,30 +204,27 @@ export function CommunityClient({
                 rows={3}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm resize-none outline-none text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
               />
-              {showImageInput && (
-                <div className="mt-2 flex gap-2">
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="Paste image URL (https://...)"
-                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs outline-none text-slate-700 dark:text-slate-200"
-                  />
-                  <button onClick={() => { setShowImageInput(false); setImageUrl(""); }} className="text-slate-400 hover:text-red-400">
-                    <X size={14} />
+              {showImageInput && imageUrl && (
+                <div className="mt-2 relative">
+                  <img src={imageUrl} alt="preview" className="rounded-xl max-h-48 w-full object-cover border border-slate-200 dark:border-white/10" />
+                  <button onClick={() => { setShowImageInput(false); setImageUrl(""); }} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70">
+                    <X size={12} />
                   </button>
                 </div>
               )}
-              {imageUrl && (
-                <img src={imageUrl} alt="preview" className="mt-2 rounded-xl max-h-48 w-full object-cover border border-slate-200 dark:border-white/10" onError={() => toast.error("Invalid image URL")} />
-              )}
               <div className="flex items-center justify-between mt-3">
-                <button
-                  onClick={() => setShowImageInput(!showImageInput)}
-                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-500 transition-colors"
-                >
-                  <Image size={14} /> Add Photo
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-500 transition-colors disabled:opacity-50"
+                    title="Upload image"
+                  >
+                    {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <Image size={14} />}
+                    {uploadingImage ? "Uploading..." : "Add Photo"}
+                  </button>
+                  <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-slate-400">{newPost.length}/500</span>
                   <button
@@ -228,9 +254,7 @@ export function CommunityClient({
             {/* Post Header */}
             <div className="flex items-start justify-between p-4 pb-0">
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm ${roleBg(post.author?.role)} ${roleColor(post.author?.role)}`}>
-                  {post.author?.full_name?.[0]?.toUpperCase() ?? "?"}
-                </div>
+                <UserAvatar user={post.author ?? {}} size="md" />
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold text-slate-800 dark:text-white">{post.author?.full_name}</p>
@@ -299,9 +323,7 @@ export function CommunityClient({
                   <>
                     {(postComments[post.id] ?? []).map((c: any) => (
                       <div key={c.id} className="flex gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 font-black text-xs flex-shrink-0">
-                          {c.author?.full_name?.[0]?.toUpperCase() ?? "?"}
-                        </div>
+                        <UserAvatar user={c.author ?? {}} size="sm" />
                         <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl px-3 py-2">
                           <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{c.author?.full_name}</p>
                           <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{c.content}</p>
@@ -371,9 +393,7 @@ export function CommunityClient({
                 <span className={`text-xs font-black w-5 text-center ${idx === 0 ? "text-amber-500" : idx === 1 ? "text-slate-400" : idx === 2 ? "text-amber-700" : "text-slate-400"}`}>
                   {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
                 </span>
-                <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 font-black text-xs flex-shrink-0">
-                  {member.full_name?.[0]?.toUpperCase()}
-                </div>
+                <UserAvatar user={member} size="sm" />
                 <p className={`text-xs font-semibold flex-1 truncate ${member.id === currentUser?.id ? "text-violet-600" : "text-slate-700 dark:text-slate-300"}`}>
                   {member.id === currentUser?.id ? "You" : member.full_name}
                 </p>

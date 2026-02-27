@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Edit2, Trash2, Eye, Send, BookOpen, Clock, CheckCircle, X } from "lucide-react";
+"use client";
+
+import { useState, useRef } from "react";
+import { Plus, Edit2, Trash2, Eye, Send, BookOpen, Clock, CheckCircle, X, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,16 +24,21 @@ export function BlogManagementClient({
   authorId,
   authorName,
 }: {
-  initialPosts: BlogPost[];
+  initialPosts: any[];
   authorId: string;
   authorName: string;
 }) {
   const supabase = createClient();
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
   const [showEditor, setShowEditor] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [form, setForm] = useState({ title: "", excerpt: "", content: "", category: "general", cover_image_url: "", status: "draft" as "draft" | "published" });
   const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [previewPost, setPreviewPost] = useState<BlogPost | null>(null);
+  const [previewContent, setPreviewContent] = useState("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const openNew = () => {
     setEditingPost(null);
@@ -39,10 +46,35 @@ export function BlogManagementClient({
     setShowEditor(true);
   };
 
-  const openEdit = (post: BlogPost) => {
+  const openEdit = async (post: BlogPost) => {
     setEditingPost(post);
     setForm({ title: post.title, excerpt: post.excerpt || "", content: "", category: post.category || "general", cover_image_url: post.cover_image_url || "", status: post.status });
     setShowEditor(true);
+    // Fetch full content for editing
+    const { data } = await supabase.from("blog_posts").select("content").eq("id", post.id).single();
+    if (data?.content) setForm((f) => ({ ...f, content: data.content }));
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    const path = `covers/${Date.now()}-${file.name.replace(/[^a-z0-9.]/gi, "_")}`;
+    const { error } = await supabase.storage.from("blog-images").upload(path, file, { upsert: true });
+    if (error) { toast.error("Upload failed. Ensure 'blog-images' bucket exists."); setUploadingCover(false); return; }
+    const { data: { publicUrl } } = supabase.storage.from("blog-images").getPublicUrl(path);
+    setForm((f) => ({ ...f, cover_image_url: publicUrl }));
+    toast.success("Cover image uploaded!");
+    setUploadingCover(false);
+  };
+
+  const handlePreview = async (post: BlogPost) => {
+    setPreviewPost(post);
+    setPreviewContent("");
+    setLoadingPreview(true);
+    const { data } = await supabase.from("blog_posts").select("content").eq("id", post.id).single();
+    setPreviewContent(data?.content ?? "");
+    setLoadingPreview(false);
   };
 
   const handleSave = async (publishNow = false) => {
@@ -156,6 +188,9 @@ export function BlogManagementClient({
               {post.excerpt && <p className="text-xs text-slate-400 line-clamp-2 mb-3">{post.excerpt}</p>}
               <p className="text-[10px] text-slate-400 mb-3">By {(post.profiles as any)?.full_name || authorName} · {new Date(post.created_at).toLocaleDateString()}</p>
               <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-white/5">
+                <button onClick={() => handlePreview(post)} className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors">
+                  <Eye size={11} />
+                </button>
                 <button onClick={() => openEdit(post)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
                   <Edit2 size={11} /> Edit
                 </button>
@@ -212,10 +247,20 @@ export function BlogManagementClient({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Cover Image URL</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Cover Image</label>
+                <div className="flex gap-2">
                   <input value={form.cover_image_url} onChange={(e) => setForm((p) => ({ ...p, cover_image_url: e.target.value }))}
-                    placeholder="https://..."
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-700 dark:text-slate-200" />
+                    placeholder="https://... or upload →"
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-700 dark:text-slate-200" />
+                  <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
+                    className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 transition-colors disabled:opacity-50 flex items-center gap-1.5 text-xs font-semibold">
+                    {uploadingCover ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} Upload
+                  </button>
+                  <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+                </div>
+                {form.cover_image_url && (
+                  <img src={form.cover_image_url} alt="cover preview" className="mt-2 h-24 w-full object-cover rounded-xl border border-slate-200 dark:border-white/10" onError={(e) => (e.target as HTMLImageElement).style.display = "none"} />
+                )}
                 </div>
               </div>
               <div>
@@ -233,6 +278,41 @@ export function BlogManagementClient({
               <button onClick={() => handleSave(true)} disabled={saving} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors disabled:opacity-50">
                 <CheckCircle size={14} /> Publish & Notify
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Preview Modal */}
+      {previewPost && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-white/10 my-8">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-white/5">
+              <h3 className="font-bold text-slate-900 dark:text-white">Post Preview</h3>
+              <button onClick={() => setPreviewPost(null)} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            </div>
+            {previewPost.cover_image_url && (
+              <img src={previewPost.cover_image_url} alt={previewPost.title} className="w-full h-52 object-cover" />
+            )}
+            <div className="p-6 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ previewPost.status === "published" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-amber-100 text-amber-700" }`}>{previewPost.status}</span>
+                {previewPost.category && <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full capitalize">{previewPost.category}</span>}
+              </div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">{previewPost.title}</h2>
+              {previewPost.excerpt && <p className="text-slate-500 dark:text-slate-400 italic text-sm">{previewPost.excerpt}</p>}
+              <p className="text-xs text-slate-400">By {(previewPost.profiles as any)?.full_name || authorName} · {new Date(previewPost.created_at).toLocaleDateString()}</p>
+              <hr className="border-slate-200 dark:border-white/5" />
+              {loadingPreview ? (
+                <div className="flex items-center justify-center py-8 text-slate-400">
+                  <Loader2 size={20} className="animate-spin mr-2" /> Loading content…
+                </div>
+              ) : (
+                <div className="prose prose-slate dark:prose-invert max-w-none text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {previewContent || <span className="text-slate-400 italic">No content yet.</span>}
+                </div>
+              )}
             </div>
           </div>
         </div>

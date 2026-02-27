@@ -23,7 +23,7 @@ export default async function AdminBlogPage() {
         <AdminHeader title="Blog Management" subtitle="Create and manage blog posts for your platform" />
         <main className="flex-1 overflow-y-auto p-6">
           <BlogManagementClient
-            initialPosts={posts || []}
+            initialPosts={(posts || []) as any[]}
             authorId={user.id}
             authorName={profile.full_name}
           />

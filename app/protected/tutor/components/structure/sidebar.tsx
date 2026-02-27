@@ -11,6 +11,10 @@ import {
   ChevronLeft,
   ChevronRight,
   GraduationCap,
+  MessageSquare,
+  Mail,
+  HelpCircle,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -46,8 +50,12 @@ export function TutorSidebar() {
     { icon: LayoutDashboard, label: "Overview", href: "/protected/tutor", exact: true },
     { icon: Users, label: "My Students", href: "/protected/tutor/students" },
     { icon: BookOpen, label: "Lessons", href: "/protected/tutor/lessons" },
+    { icon: HelpCircle, label: "Quizzes", href: "/protected/tutor/quiz" },
+    { icon: MessageSquare, label: "Community", href: "/protected/tutor/community" },
     { icon: FileText, label: "Blog", href: "/protected/tutor/blog" },
+    { icon: Mail, label: "Messages", href: "/protected/tutor/messages" },
     { icon: Bell, label: "Notifications", href: "/protected/tutor/notifications" },
+    { icon: Settings, label: "Settings", href: "/protected/tutor/settings" },
   ];
 
   const isActive = (item: { href: string; exact?: boolean }) =>

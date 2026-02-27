@@ -4,6 +4,7 @@ import { TutorSidebar } from "./components/structure/sidebar";
 import { TutorHeader } from "./components/structure/header";
 import { ArrowUpRight, Users, BookOpen, Trophy, TrendingUp, Star, FileText, Bell } from "lucide-react";
 import Link from "next/link";
+import { NoOrgBanner } from "./components/no-org-banner";
 
 export default async function TutorPage() {
   const supabase = await createClient();
@@ -32,6 +33,9 @@ export default async function TutorPage() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <TutorHeader title="Tutor Dashboard" subtitle={`Welcome back, ${profile.full_name?.split(" ")[0]}`} />
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
+
+          {/* No-org warning banner */}
+          {!profile.organization_id && <NoOrgBanner />}
 
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white">

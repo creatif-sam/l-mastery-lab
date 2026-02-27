@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Bell,
   FileText,
-  MessageSquare
+  MessageSquare,
+  Mail
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -75,6 +76,7 @@ export function Sidebar() {
     { icon: Users, label: "Network", href: "/protected/student-board/network", active: pathname === "/protected/student-board/network" },
     { icon: MessageSquare, label: "Community", href: "/protected/student-board/community", active: pathname.startsWith("/protected/student-board/community") },
     { icon: FileText, label: "Blog", href: "/protected/student-board/blog", active: pathname.startsWith("/protected/student-board/blog") },
+    { icon: Mail, label: "Messages", href: "/protected/student-board/messages", active: pathname.startsWith("/protected/student-board/messages") },
     { icon: Inbox, label: "Inbox", href: "/protected/student-board/inbox", active: pathname === "/protected/student-board/inbox", badge: hasUnread },
     { icon: Bell, label: "Alerts", href: "/protected/student-board/notifications", active: pathname === "/protected/student-board/notifications" },
   ];
