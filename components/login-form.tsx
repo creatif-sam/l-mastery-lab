@@ -79,7 +79,7 @@ export function LoginForm({
                 type="email"
                 placeholder="name@example.com"
                 required
-                className="h-14 pl-12 border-zinc-300 bg-zinc-50 rounded-xl focus:border-violet-600 focus:bg-white transition-all font-bold text-xs text-[#003366]"
+                className="h-11 pl-12 border-zinc-300 bg-zinc-50 rounded-xl focus:border-violet-600 focus:bg-white transition-all font-bold text-xs text-[#003366]"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -102,7 +102,7 @@ export function LoginForm({
                 id="password"
                 type={showPassword ? "text" : "password"}
                 required
-                className="h-14 pl-12 pr-12 border-zinc-300 bg-zinc-50 rounded-xl focus:border-violet-600 focus:bg-white transition-all font-bold text-xs text-[#003366]"
+                className="h-11 pl-12 pr-12 border-zinc-300 bg-zinc-50 rounded-xl focus:border-violet-600 focus:bg-white transition-all font-bold text-xs text-[#003366]"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -130,7 +130,7 @@ export function LoginForm({
 
         <Button 
           type="submit" 
-          className="w-full h-14 bg-[#003366] hover:bg-violet-700 text-white rounded-xl font-black tracking-[0.2em] text-xs transition-all shadow-xl active:scale-[0.98]" 
+          className="w-full h-11 bg-[#003366] hover:bg-violet-700 text-white rounded-xl font-black tracking-[0.2em] text-xs transition-all shadow-xl active:scale-[0.98]" 
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENTER THE LAB"}

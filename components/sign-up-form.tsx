@@ -145,7 +145,7 @@ export function SignUpForm() {
         {/* ROW 3: Organization Selection */}
         <div className="space-y-1.5">
           <label className="text-[10px] font-black tracking-widest text-[#003366] uppercase ml-3 block">Organization</label>
-          <div className="flex items-center gap-3 border border-zinc-300 rounded-xl px-4 py-3.5 bg-zinc-50 focus-within:border-violet-600 focus-within:bg-white transition-all shadow-sm">
+          <div className="flex items-center gap-3 border border-zinc-300 rounded-xl px-4 py-2.5 bg-zinc-50 focus-within:border-violet-600 focus-within:bg-white transition-all shadow-sm">
              {formData.orgId !== "solo" && (
                <div className="w-5 h-5 shrink-0 rounded overflow-hidden border border-zinc-200 bg-white relative">
                   <Image 
@@ -222,7 +222,7 @@ export function SignUpForm() {
         <button 
           type="submit"
           disabled={isLoading}
-          className="w-full py-5 bg-[#003366] text-white rounded-xl font-black tracking-[0.2em] transition-all text-xs hover:bg-violet-700 shadow-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-[#003366] text-white rounded-xl font-black tracking-[0.2em] transition-all text-xs hover:bg-violet-700 shadow-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
           {isLoading ? "ENROLLING..." : "CREATE MASTER PROFILE"}
@@ -255,7 +255,7 @@ function AcademicInput({
           required
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            "w-full border bg-zinc-50 rounded-xl px-4 py-3.5 pr-12 outline-none transition-all text-xs font-bold text-[#003366] placeholder:text-zinc-300 shadow-sm",
+            "w-full border bg-zinc-50 rounded-xl px-4 py-2.5 pr-12 outline-none transition-all text-xs font-bold text-[#003366] placeholder:text-zinc-300 shadow-sm",
             isValid 
               ? "border-emerald-500 bg-emerald-50/20" 
               : "border-zinc-300 focus:border-violet-600 focus:bg-white"
