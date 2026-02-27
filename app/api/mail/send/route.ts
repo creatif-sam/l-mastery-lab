@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Admin client with service role key — can read auth.users
+function getAdminClient() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,30 +28,38 @@ export async function POST(req: NextRequest) {
 
     if (recipientType === "custom") {
       const emails = (customEmails as string || "").split(",").map((e: string) => e.trim()).filter(Boolean);
+      if (emails.length === 0) {
+        return NextResponse.json({ error: "No custom email addresses provided" }, { status: 400 });
+      }
       emailList = emails.map((email: string) => ({ email, name: email.split("@")[0] }));
     } else {
-      let query = supabase.from("profiles").select("id, full_name");
+      // Filter profiles by role
+      let query = supabase.from("profiles").select("id, full_name, role");
       if (recipientType === "students") query = query.eq("role", "student") as any;
       else if (recipientType === "tutors") query = query.eq("role", "tutor") as any;
+      // "all" and "newsletter" use no role filter — all profiles
 
-      const { data: profiles } = await query;
+      const { data: profiles, error: profilesError } = await query;
+      if (profilesError) {
+        return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });
+      }
 
       if (profiles && profiles.length > 0) {
-        // Get auth emails for these user IDs
+        const adminClient = getAdminClient();
         const userIds = profiles.map((p: any) => p.id);
-        // We use admin client to get emails
-        let authUsers: any[] | null = null;
-        try {
-          const { data } = await supabase.rpc("get_user_emails", { user_ids: userIds });
-          authUsers = data;
-        } catch {
-          authUsers = null;
+
+        // Fetch all auth users from admin client and match by id
+        const { data: { users: authUsers }, error: authError } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+
+        if (authError || !authUsers) {
+          return NextResponse.json({ error: "Failed to fetch user emails" }, { status: 500 });
         }
 
-        emailList = profiles.map((p: any, i: number) => ({
-          email: authUsers?.[i]?.email || `user${i}@placeholder.com`,
-          name: p.full_name,
-        }));
+        const emailMap = new Map(authUsers.map((u: any) => [u.id, u.email]));
+
+        emailList = profiles
+          .map((p: any) => ({ email: emailMap.get(p.id) as string, name: p.full_name }))
+          .filter((r) => !!r.email);
       }
     }
 

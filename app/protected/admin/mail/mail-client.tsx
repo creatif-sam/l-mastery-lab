@@ -11,6 +11,7 @@ type Campaign = {
   id: string;
   subject: string;
   recipient_type: string;
+  custom_emails?: string | null;
   status: string;
   recipients_count: number;
   created_at: string;
@@ -67,6 +68,7 @@ export function MailClient({ initialCampaigns, initialTemplates, stats, allUsers
           subject: campaign.subject,
           body: campaign.body,
           recipientType: campaign.recipient_type,
+          customEmails: campaign.custom_emails ?? "",
         }),
       });
       const data = await res.json();

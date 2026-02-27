@@ -16,6 +16,7 @@ import {
   GraduationCap,
   MessageSquare,
   MessageCircle,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -125,11 +126,33 @@ export function AdminSidebar() {
           })}
         </div>
 
+        {/* View Student Dashboard */}
+        <div className={cn("border-t border-white/5 pt-3 mt-3 space-y-1")}>
+          {!isCollapsed && (
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">Preview</p>
+          )}
+          <Link
+            href="/protected/student-board"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300",
+              isCollapsed ? "justify-center" : ""
+            )}
+          >
+            <Eye size={18} className="flex-shrink-0" />
+            {!isCollapsed && <span className="text-sm font-medium">Student View</span>}
+            {isCollapsed && (
+              <div className="absolute left-20 bg-slate-800 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+                Student View
+              </div>
+            )}
+          </Link>
+        </div>
+
         {/* Logout */}
         <button
           onClick={handleLogout}
           className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 mt-4",
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 mt-2",
             isCollapsed ? "justify-center" : ""
           )}
         >

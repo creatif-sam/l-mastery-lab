@@ -1,12 +1,12 @@
-"use client"; // ✅ Added to allow use in Settings & other client pages
+"use client";
 
 import { useState, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, ShieldCheck } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { createClient } from "@/lib/supabase/client"; // ✅ Changed to client creator
+import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
-import { NotificationCenter } from "./notifications";
+import { NotificationCenter } from "./notifications"; 
 
 export function Header() {
   const supabase = createClient();
@@ -52,7 +52,24 @@ export function Header() {
     ? profile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase()
     : "??";
 
+  const isAdmin = profile?.role === "admin";
+
   return (
+    <>
+      {isAdmin && (
+        <div className="flex items-center justify-between gap-3 bg-indigo-600 text-white px-4 md:px-8 py-2 text-xs font-semibold z-50 relative">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={14} />
+            <span>Admin Preview — you are viewing the student dashboard</span>
+          </div>
+          <Link
+            href="/protected/admin"
+            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1 font-bold text-xs whitespace-nowrap"
+          >
+            ← Back to Admin
+          </Link>
+        </div>
+      )}
     <header className="px-4 md:px-8 py-3 md:py-4 flex justify-between items-center bg-white/50 dark:bg-black/50 backdrop-blur-md border-b border-slate-200 dark:border-white/5 relative z-50">
       
       {/* Search Bar (Hidden on Mobile) */}
@@ -117,5 +134,6 @@ export function Header() {
         </div>
       </div>
     </header>
+    </>
   );
 }
