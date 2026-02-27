@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { PageViewTracker } from "@/components/page-view-tracker";
+import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -41,6 +42,7 @@ export default function RootLayout({
             {children}
           </NotificationProvider>
           <Toaster richColors position="top-right" closeButton />
+          <CookieConsent />
         </ThemeProvider>
       </body>
     </html>

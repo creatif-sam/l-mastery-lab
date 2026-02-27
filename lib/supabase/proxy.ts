@@ -53,7 +53,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/auth") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/blog") ||
-    pathname.startsWith("/learn-more");
+    pathname.startsWith("/learn-more") ||
+    pathname.startsWith("/contact") ||
+    pathname.startsWith("/api/");   // API routes handle their own auth
 
   if (!user && !isPublicPath) {
     // no user — redirect to login

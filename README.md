@@ -1,21 +1,262 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# Language Mastery Lab (LML)
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+> A collaborative language-learning platform powered by **Next.js 15**, **Supabase**, and **AI-assisted pedagogy**. Students, tutors, and administrators interact in a structured environment designed to accelerate language acquisition through lessons, quizzes, community, and real-time mentorship.
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Features](#features)
+  - [Student Dashboard](#student-dashboard)
+  - [Tutor Dashboard](#tutor-dashboard)
+  - [Admin Panel](#admin-panel)
+  - [Public Pages](#public-pages)
+- [Project Structure](#project-structure)
+- [Database Schema](#database-schema)
+- [Environment Variables](#environment-variables)
+- [Getting Started](#getting-started)
+- [Deployment](#deployment)
+- [Security](#security)
+
+---
+
+## Overview
+
+Language Mastery Lab is a **multi-role SaaS platform** where:
+
+| Role | What they do |
+|------|------|
+| **Student** | Take lessons, attempt quizzes, track XP & rankings, join groups, message tutors, read blogs |
+| **Tutor** | Manage assigned students, create/grade quizzes, post blogs, send notifications |
+| **Admin** | Full platform oversight — users, analytics, mail campaigns, community moderation, platform logs |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | [Next.js 15](https://nextjs.org/) (App Router, Server Components) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v3 + `tailwindcss-animate` |
+| UI Components | Radix UI primitives + custom shadcn/ui-style components |
+| Auth & DB | [Supabase](https://supabase.com/) (Auth, PostgreSQL, RLS, Realtime) |
+| Email | [Resend](https://resend.com/) |
+| Animations | [Framer Motion](https://www.framer.com/motion/) |
+| Toasts | [Sonner](https://sonner.emilkowal.ski/) |
+| Icons | [Lucide React](https://lucide.dev/) |
+| Hosting | Vercel (recommended) |
+
+---
+
+## Features
+
+### Student Dashboard
+
+- **Home** — Personalized greeting, XP progress, group stats, upcoming meeting cards, phrase of the day
+- **Lessons** — Categorised lesson modules with completion tracking
+- **Quiz** — Timed quizzes with score recording and history
+- **Rankings** — Leaderboard within organization and groups
+- **Community** — Posts, replies, reactions; community point system
+- **Blog** — Read and share published blog posts
+- **Messages / Inbox** — Direct messaging with tutors
+- **Network** — Find and connect with language partners
+- **Notifications** — Real-time bell with unread badge
+- **Settings** — Profile, target language, level, country
+
+> **Copy protection** is enforced on all student pages — text selection, clipboard events, right-click, and keyboard shortcuts (`Ctrl+C`, `Ctrl+A`, `Ctrl+S`, `PrtSc`, etc.) are blocked and a Sonner toast informs the student why.
+
+---
+
+### Tutor Dashboard
+
+- Manage assigned students and groups
+- Create and publish lessons / quizzes
+- Blog authoring with draft/publish workflow
+- Community moderation tools
+- Direct messaging
+- Notification management
+
+---
+
+### Admin Panel
+
+Located at `/protected/admin`, role-gated to `admin`.
+
+| Section | Path | What it shows |
+|---------|------|---------------|
+| **Overview** | `/admin` | KPI cards, recent users, top learners, weekly activity |
+| **Users** | `/admin/users` | Full user list with role, language, level, XP |
+| **Tutors** | `/admin/tutors` | Tutor-specific management |
+| **Analytics** | `/admin/analytics` | Role breakdown, language distribution, level buckets |
+| **Community** | `/admin/community` | Moderate community posts |
+| **Messages** | `/admin/messages` | Platform-wide message view |
+| **Mail Campaigns** | `/admin/mail` | Send bulk email campaigns via Resend |
+| **Blog** | `/admin/blog` | Approve / manage blog posts |
+| **Notifications** | `/admin/notifications` | Send platform notifications |
+| **Platform Logs** | `/admin/logs` | Real-time activity feed — who did what, when, from where |
+| **Settings** | `/admin/settings` | Platform configuration |
+
+---
+
+### Public Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Marketing hero with collaborative animation |
+| `/learn-more` | Feature breakdown and onboarding CTA |
+| `/blog` | Public blog index |
+| `/blog/[id]` | Individual blog post with share button |
+| `/contact` | Contact form |
+| `/auth/login` | Login form |
+| `/auth/sign-up` | Registration form |
+| `/auth/forgot-password` | Password reset request |
+| `/auth/update-password` | Set new password (from email link) |
+
+---
+
+## Project Structure
+
+```
+├── app/
+│   ├── api/
+│   │   ├── contact/          # Contact form handler
+│   │   ├── log/              # Platform activity log ingest
+│   │   ├── mail/send/        # Resend email dispatch
+│   │   ├── notifications/    # Notification API
+│   │   └── track/            # Page-view tracker
+│   ├── auth/                 # Auth pages
+│   ├── blog/                 # Public blog
+│   ├── contact/              # Contact page
+│   ├── learn-more/           # Marketing page
+│   └── protected/
+│       ├── admin/            # Admin panel (role=admin only)
+│       ├── student-board/    # Student dashboard
+│       └── tutor/            # Tutor dashboard
+├── components/
+│   ├── copy-protection.tsx   # Client-side copy/screenshot guard
+│   ├── notifications/
+│   ├── messaging/
+│   ├── leaderboard/
+│   └── ui/
+├── lib/
+│   ├── log-activity.ts       # Client helper to log platform activities
+│   ├── utils.ts
+│   └── supabase/
+└── supabase/
+    └── migrations/
+```
+
+---
+
+## Database Schema
+
+| Table | Purpose |
+|-------|--------|
+| `profiles` | User data — name, role, XP, level, group, org, language |
+| `lessons` | Lesson content with category, order, media |
+| `lesson_categories` | Localised category names (EN / FR) |
+| `user_lesson_progress` | Per-user lesson completion tracking |
+| `quiz_attempts` | Quiz submissions with scores |
+| `community_posts` | Community feed posts and replies |
+| `blog_posts` | Blog entries with draft/published status |
+| `notifications` | In-app notification records |
+| `page_views` | Page-view events (anonymous + authenticated) |
+| `platform_logs` | Structured activity log — user, action, entity, metadata, IP |
+| `contact_messages` | Contact form submissions |
+
+All tables have **Row Level Security (RLS)** enabled.
+
+---
+
+## Environment Variables
+
+Create a `.env.local` file at the project root:
+
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Resend (email)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+
+# App URL
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+```
+
+> Never commit `.env.local` to version control.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js ≥ 18
+- A [Supabase](https://supabase.com/) project with migrations applied
+- (Optional) A [Resend](https://resend.com/) account
+
+### Install & Run
+
+```bash
+# 1. Clone
+git clone https://github.com/your-org/language-mastery-lab.git
+cd language-mastery-lab
+
+# 2. Install
+npm install
+
+# 3. Configure .env.local
+cp .env.example .env.local
+
+# 4. Apply migrations
+supabase db push
+# or run files in supabase/migrations/ via the Supabase SQL editor
+
+# 5. Start dev server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### Build
+
+```bash
+npm run build
+npm run start
+```
+
+---
+
+## Deployment
+
+1. Push to GitHub
+2. Import the repo in [Vercel](https://vercel.com/)
+3. Add environment variables in the Vercel dashboard
+4. Deploy — Vercel auto-detects Next.js settings
+
+---
+
+## Security
+
+| Measure | Detail |
+|---------|--------|
+| **Row Level Security** | Every Supabase table has RLS; policies enforce role-based access |
+| **Server-side auth** | Every protected page validates session + role before rendering |
+| **Copy protection** | Student pages block clipboard, right-click, print & screenshot shortcuts |
+| **Env isolation** | `SUPABASE_SERVICE_ROLE_KEY` is server-only, never exposed client-side |
+| **Email confirmation** | Sign-up requires email verification |
+| **Admin-only routes** | All `/protected/admin/*` routes redirect non-admins |
+
+---
+
+## License
+
+Proprietary — Language Mastery Lab © 2026. All rights reserved.
 
 ## Features
 

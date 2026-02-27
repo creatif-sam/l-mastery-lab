@@ -19,6 +19,7 @@ import {
   Eye,
   MoreHorizontal,
   X,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -61,6 +62,7 @@ export function AdminSidebar() {
     { icon: Mail,            label: "Mail Campaigns", href: "/protected/admin/mail" },
     { icon: FileText,        label: "Blog",           href: "/protected/admin/blog" },
     { icon: Bell,            label: "Notifications",  href: "/protected/admin/notifications" },
+    { icon: Activity,        label: "Platform Logs",  href: "/protected/admin/logs" },
     { icon: Settings,        label: "Settings",       href: "/protected/admin/settings" },
   ];
 
