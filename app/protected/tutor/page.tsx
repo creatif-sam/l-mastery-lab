@@ -17,27 +17,29 @@ export default async function TutorPage() {
 
   const orgId = profile.organization_id;
 
+  // Parallelise the main fetches (safe – none of these throw on missing data)
   const [
     { count: myStudents },
     { data: topStudents },
     { data: recentPosts },
     { count: unreadNotifs },
-    { data: orgData },
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student")
-      .eq("organization_id", orgId || "00000000-0000-0000-0000-000000000000"),
-    // Filter top students by the tutor's own organisation only
+      .eq("organization_id", orgId ?? "00000000-0000-0000-0000-000000000000"),
     orgId
       ? supabase.from("profiles").select("full_name, xp, level").eq("role", "student")
           .eq("organization_id", orgId).order("xp", { ascending: false }).limit(5)
-      : supabase.from("profiles").select("full_name, xp, level").eq("role", "student")
-          .is("organization_id", null).limit(0),
+      : Promise.resolve({ data: [] as { full_name: string; xp: number; level: number }[] }),
     supabase.from("blog_posts").select("id, title, status, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(4),
     supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
-    orgId
-      ? supabase.from("organizations").select("name, logo_url").eq("id", orgId).single()
-      : Promise.resolve({ data: null }),
   ]);
+
+  // Fetch org separately so its failure can never affect the rest of the page
+  let orgData: { name: string; logo_url: string | null } | null = null;
+  if (orgId) {
+    const { data } = await supabase.from("organizations").select("name, logo_url").eq("id", orgId).single();
+    if (data) orgData = data as typeof orgData;
+  }
 
   const orgLogoUrl = orgData?.logo_url
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${orgData.logo_url}`

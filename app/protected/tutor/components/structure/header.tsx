@@ -20,16 +20,24 @@ export function TutorHeader({ title, subtitle }: { title: string; subtitle?: str
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, organizations(name, logo_url)")
+        .select("full_name, organization_id")
         .eq("id", user.id)
         .single();
       if (profile?.full_name) setTutorName(profile.full_name.split(" ")[0]);
-      const org = Array.isArray(profile?.organizations) ? profile.organizations[0] : profile?.organizations;
-      if (org?.name) setOrgName(org.name);
-      if (org?.logo_url) {
-        setOrgLogoUrl(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${org.logo_url}`
-        );
+
+      // Fetch org separately to avoid FK-join failures
+      if (profile?.organization_id) {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("name, logo_url")
+          .eq("id", profile.organization_id)
+          .single();
+        if (org?.name) setOrgName(org.name);
+        if (org?.logo_url) {
+          setOrgLogoUrl(
+            `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${org.logo_url}`
+          );
+        }
       }
     };
     load();

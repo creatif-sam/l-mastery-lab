@@ -20,12 +20,7 @@ export function Header() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select(`
-          full_name, 
-          avatar_url, 
-          role,
-          organizations (name, logo_url)
-        `)
+        .select("full_name, avatar_url, role, organization_id")
         .eq("id", user.id)
         .single();
 
@@ -36,12 +31,19 @@ export function Header() {
 
       setProfile(data);
 
-      const org = Array.isArray(data?.organizations) 
-        ? data?.organizations[0] 
-        : data?.organizations;
+      // Fetch org logo separately to avoid FK-join failures
+      if (data?.organization_id) {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("logo_url")
+          .eq("id", data.organization_id)
+          .single();
 
-      if (org?.logo_url) {
-        setOrgLogoUrl(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${org.logo_url}`);
+        if (org?.logo_url) {
+          setOrgLogoUrl(
+            `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${org.logo_url}`
+          );
+        }
       }
     }
 
