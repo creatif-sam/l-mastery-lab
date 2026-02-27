@@ -38,7 +38,7 @@ export default async function TutorPage() {
   let orgData: { name: string; logo_url: string | null } | null = null;
   if (orgId) {
     const { data } = await supabase.from("organizations").select("name, logo_url").eq("id", orgId).single();
-    if (data) orgData = data as typeof orgData;
+    if (data) orgData = data as { name: string; logo_url: string | null };
   }
 
   const orgLogoUrl = orgData?.logo_url
