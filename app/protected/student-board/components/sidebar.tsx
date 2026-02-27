@@ -10,7 +10,10 @@ import {
   Trophy, 
   HelpCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Bell,
+  FileText,
+  MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -70,7 +73,10 @@ export function Sidebar() {
     { icon: HelpCircle, label: "Quiz", href: "/protected/student-board/quiz", active: pathname === "/protected/student-board/quiz" },
     { icon: Trophy, label: "Arena", href: "/protected/student-board/ranking", active: pathname === "/protected/student-board/ranking" },
     { icon: Users, label: "Network", href: "/protected/student-board/network", active: pathname === "/protected/student-board/network" },
+    { icon: MessageSquare, label: "Community", href: "/protected/student-board/community", active: pathname.startsWith("/protected/student-board/community") },
+    { icon: FileText, label: "Blog", href: "/protected/student-board/blog", active: pathname.startsWith("/protected/student-board/blog") },
     { icon: Inbox, label: "Inbox", href: "/protected/student-board/inbox", active: pathname === "/protected/student-board/inbox", badge: hasUnread },
+    { icon: Bell, label: "Alerts", href: "/protected/student-board/notifications", active: pathname === "/protected/student-board/notifications" },
   ];
 
   return (

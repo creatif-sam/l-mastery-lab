@@ -9,7 +9,7 @@ import {
   ArrowRight, 
   Award, 
   Users, 
-  Clock 
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -27,11 +27,25 @@ export default async function StudentDashboard() {
       full_name, 
       organization_id,
       group_id,
+      community_points,
       groups(name),
       quiz_attempts(score, created_at)
     `)
     .eq("id", user?.id)
     .single() as any; // Assert as any to fix the 'never' type error during build
+
+  // 2. Fetch lessons completed by user
+  const { count: lessonsCompleted } = await supabase
+    .from("user_lesson_progress")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user?.id)
+    .eq("completed", true);
+
+  // 3. Fetch community posts count for this user
+  const { count: communityPostsCount } = await supabase
+    .from("community_posts")
+    .select("*", { count: "exact", head: true })
+    .eq("author_id", user?.id);
 
   // 2. Fetch Group Stats (Collective Performance)
   let groupAverage = 0;
@@ -106,10 +120,10 @@ export default async function StudentDashboard() {
             </div>
 
             {/* 2. CORE STATS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard 
-                title="Personal Best" 
-                value={profile?.quiz_attempts?.[0]?.score || 0} 
+                title="Best Score" 
+                value={profile?.quiz_attempts?.reduce((b: number, a: any) => Math.max(b, a.score ?? 0), 0) || 0} 
                 unit="/ 20 Pts"
                 icon={Target}
                 color="text-emerald-500"
@@ -120,7 +134,7 @@ export default async function StudentDashboard() {
                 unit="Pts"
                 icon={Users}
                 color="text-violet-600"
-                subtitle={`${teammatesCount}/4 Members active`}
+                subtitle={`${teammatesCount} members`}
               />
               <StatCard 
                 title="Arena Runs" 
@@ -128,6 +142,15 @@ export default async function StudentDashboard() {
                 unit="Attempts"
                 icon={Zap}
                 color="text-amber-500"
+              />
+              <StatCard 
+                title="Community Pts" 
+                value={(profile?.community_points ?? 0).toFixed(1)} 
+                unit="Pts"
+                icon={Star}
+                color="text-pink-500"
+                subtitle={`${communityPostsCount ?? 0} posts`}
+                href="/protected/student-board/community"
               />
             </div>
 
@@ -195,24 +218,26 @@ export default async function StudentDashboard() {
   );
 }
 
-function StatCard({ title, value, unit, icon: Icon, color, subtitle }: any) {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/5 p-6 shadow-sm hover:shadow-md transition-all">
-      <div className="flex items-center justify-between mb-4">
+function StatCard({ title, value, unit, icon: Icon, color, subtitle, href }: any) {
+  const content = (
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/5 p-5 shadow-sm hover:shadow-md transition-all h-full">
+      <div className="flex items-center justify-between mb-3">
         <div className={cn("p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50", color)}>
-          <Icon className="w-5 h-5" />
+          <Icon className="w-4 h-4" />
         </div>
       </div>
       <div>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{title}</p>
-        <div className="flex items-baseline gap-1.5 mt-1">
-          <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</span>
+        <div className="flex items-baseline gap-1 mt-1">
+          <span className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</span>
           <span className="text-xs font-medium text-slate-500">{unit}</span>
         </div>
         {subtitle && (
-          <p className="text-[10px] font-medium text-slate-400 mt-2">{subtitle}</p>
+          <p className="text-[10px] font-medium text-slate-400 mt-1">{subtitle}</p>
         )}
       </div>
     </div>
   );
+  if (href) return <Link href={href} className="block h-full">{content}</Link>;
+  return content;
 }

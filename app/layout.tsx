@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
+import { NotificationProvider } from "@/components/notifications/notification-provider";
+import { PageViewTracker } from "@/components/page-view-tracker";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -33,7 +36,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <NotificationProvider>
+            <PageViewTracker />
+            {children}
+          </NotificationProvider>
+          <Toaster richColors position="top-right" closeButton />
         </ThemeProvider>
       </body>
     </html>

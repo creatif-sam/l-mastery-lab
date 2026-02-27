@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { UserCircle, Sparkles, ArrowRight } from "lucide-react"; // Added icons
+import { UserCircle, Sparkles, ArrowRight } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { CollaborativeAnimation } from "@/components/collaborative-animation";
 
 export default function HomePage() {
   const [currentLangIndex, setCurrentLangIndex] = useState(0);
@@ -53,6 +54,10 @@ export default function HomePage() {
           
           <div className="flex items-center gap-3">
             <ThemeSwitcher />
+            <div className="h-6 w-[1px] bg-slate-200 dark:bg-white/10 mx-1" />
+            <Link href="/blog" className="text-xs font-black tracking-widest text-slate-500 hover:text-violet-600 dark:hover:text-white uppercase transition-colors px-2 py-1">
+              Blog
+            </Link>
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-white/10 mx-1" />
             <Button variant="ghost" size="icon" className="rounded-full hover:bg-violet-500/10 hover:text-violet-500 transition-colors" asChild>
               <Link href="/auth/login" aria-label="Login">
@@ -127,6 +132,8 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
+      <CollaborativeAnimation />
 
       <footer className="relative z-10 border-t border-slate-100 dark:border-white/5 py-8 md:py-12 mt-auto">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6 opacity-60">

@@ -29,12 +29,24 @@ export function LoginForm({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.push("/protected/student-board");
+
+      // Fetch role and redirect accordingly
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      if (profile?.role === "admin") {
+        router.push("/protected/admin");
+      } else if (profile?.role === "tutor") {
+        router.push("/protected/tutor");
+      } else {
+        router.push("/protected/student-board");
+      }
+      router.refresh();
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Invalid credentials");
     } finally {
