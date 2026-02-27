@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { TutorSidebar } from "./components/structure/sidebar";
 import { TutorHeader } from "./components/structure/header";
-import { ArrowUpRight, Users, BookOpen, Trophy, TrendingUp, Star, FileText, Bell } from "lucide-react";
+import { ArrowUpRight, Users, BookOpen, Trophy, TrendingUp, Star, FileText, Bell, Building2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { NoOrgBanner } from "./components/no-org-banner";
 
 export default async function TutorPage() {
@@ -14,18 +15,33 @@ export default async function TutorPage() {
   const { data: profile } = await supabase.from("profiles").select("role, full_name, organization_id").eq("id", user.id).single();
   if (!profile || profile.role !== "tutor") return redirect("/");
 
+  const orgId = profile.organization_id;
+
   const [
     { count: myStudents },
     { data: topStudents },
     { data: recentPosts },
     { count: unreadNotifs },
+    { data: orgData },
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student")
-      .eq("organization_id", profile.organization_id || "00000000-0000-0000-0000-000000000000"),
-    supabase.from("profiles").select("full_name, xp, level").eq("role", "student").order("xp", { ascending: false }).limit(5),
+      .eq("organization_id", orgId || "00000000-0000-0000-0000-000000000000"),
+    // Filter top students by the tutor's own organisation only
+    orgId
+      ? supabase.from("profiles").select("full_name, xp, level").eq("role", "student")
+          .eq("organization_id", orgId).order("xp", { ascending: false }).limit(5)
+      : supabase.from("profiles").select("full_name, xp, level").eq("role", "student")
+          .is("organization_id", null).limit(0),
     supabase.from("blog_posts").select("id, title, status, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(4),
     supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
+    orgId
+      ? supabase.from("organizations").select("name, logo_url").eq("id", orgId).single()
+      : Promise.resolve({ data: null }),
   ]);
+
+  const orgLogoUrl = orgData?.logo_url
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/organization-logos/${orgData.logo_url}`
+    : null;
 
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0B0F1A] transition-colors">
@@ -39,8 +55,28 @@ export default async function TutorPage() {
 
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white">
-            <h2 className="text-xl font-black mb-1">Welcome back, {profile.full_name?.split(" ")[0]}! 👋</h2>
-            <p className="text-emerald-100 text-sm">You have {unreadNotifs ?? 0} unread notification{(unreadNotifs ?? 0) !== 1 ? "s" : ""} and {myStudents ?? 0} students in your cohort.</p>
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <h2 className="text-xl font-black mb-1">Welcome back, {profile.full_name?.split(" ")[0]}! 👋</h2>
+                <p className="text-emerald-100 text-sm">You have {unreadNotifs ?? 0} unread notification{(unreadNotifs ?? 0) !== 1 ? "s" : ""} and {myStudents ?? 0} students in your cohort.</p>
+              </div>
+              {/* Organisation logo in welcome card */}
+              {orgLogoUrl ? (
+                <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                  <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 overflow-hidden flex items-center justify-center shadow-lg">
+                    <Image src={orgLogoUrl} alt={orgData?.name ?? "Organisation"} width={52} height={52} className="object-contain p-1" unoptimized />
+                  </div>
+                  {orgData?.name && <p className="text-[10px] text-emerald-100 font-semibold text-center max-w-[64px] truncate">{orgData.name}</p>}
+                </div>
+              ) : orgData?.name ? (
+                <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                  <div className="w-14 h-14 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-lg">
+                    <Building2 size={22} className="text-white/80" />
+                  </div>
+                  <p className="text-[10px] text-emerald-100 font-semibold text-center max-w-[64px] truncate">{orgData.name}</p>
+                </div>
+              ) : null}
+            </div>
             <div className="flex gap-3 mt-4">
               <Link href="/protected/tutor/blog" className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
                 <FileText size={14} /> Write Post

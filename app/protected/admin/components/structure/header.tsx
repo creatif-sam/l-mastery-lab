@@ -1,9 +1,10 @@
 "use client";
 
-import { Bell, Search, Moon, Sun } from "lucide-react";
+import { Search, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
 interface AdminHeaderProps {
   title: string;
@@ -13,7 +14,6 @@ interface AdminHeaderProps {
 export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [adminName, setAdminName] = useState("Admin");
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -26,13 +26,6 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
         .eq("id", user.id)
         .single();
       if (profile?.full_name) setAdminName(profile.full_name.split(" ")[0]);
-
-      const { count } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
-      setUnreadCount(count || 0);
     };
     load();
   }, []);
@@ -64,14 +57,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
         </button>
 
         {/* Notifications bell */}
-        <button className="relative w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors">
-          <Bell size={16} />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
+        <NotificationDropdown allLink="/protected/admin/notifications" />
 
         {/* Avatar */}
         <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-md">

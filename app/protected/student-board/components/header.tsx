@@ -6,7 +6,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
-import { NotificationCenter } from "./notifications"; 
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
 export function Header() {
   const supabase = createClient();
@@ -130,7 +130,10 @@ export function Header() {
         <div className="hidden md:block h-6 w-[1px] bg-slate-200 dark:bg-white/10 order-2" />
 
         <div className="order-3">
-          <NotificationCenter />
+          <NotificationDropdown
+            buttonClassName="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg relative transition-colors flex items-center justify-center text-slate-500"
+            allLink="/protected/student-board/notifications"
+          />
         </div>
       </div>
     </header>
