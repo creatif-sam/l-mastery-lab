@@ -28,6 +28,7 @@ export function Sidebar() {
   
   const [isCollapsed, setIsCollapsed] = useState<boolean | null>(null);
   const [hasUnread, setHasUnread] = useState(false); // 🔔 Notification State
+  const [sideOpen, setSideOpen] = useState(false);
 
   useEffect(() => {
     const savedState = localStorage.getItem("sidebar-collapsed");
@@ -80,6 +81,11 @@ export function Sidebar() {
     { icon: Inbox, label: "Inbox", href: "/protected/student-board/inbox", active: pathname === "/protected/student-board/inbox", badge: hasUnread },
     { icon: Bell, label: "Alerts", href: "/protected/student-board/notifications", active: pathname === "/protected/student-board/notifications" },
   ];
+
+  // Mobile: 5 bottom tabs
+  const bottomNavItems = [menuItems[0], menuItems[1], menuItems[2], menuItems[3], menuItems[9]];
+  // Mobile: right side dock
+  const sideDockItems = [menuItems[7], menuItems[5], menuItems[4], menuItems[6], menuItems[8]];
 
   return (
     <>
@@ -144,34 +150,83 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* --- MOBILE NAVIGATION --- */}
+      {/* --- MOBILE BOTTOM NAV (5 tabs) --- */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-1 pb-safe">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
-          {menuItems.map((item) => (
+          {bottomNavItems.map((item) => (
             <Link
               href={item.href}
               key={item.label}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 min-w-[50px] flex-1 transition-all h-full relative", 
+                "flex flex-col items-center justify-center gap-1 flex-1 transition-all h-full relative",
                 item.active ? "text-violet-600" : "text-slate-400"
               )}
             >
               <div className={cn(
-                "p-1.5 rounded-xl transition-colors relative", 
+                "p-1.5 rounded-xl transition-colors relative",
                 item.active ? "bg-violet-500/10" : "bg-transparent"
               )}>
                 <item.icon className="w-5 h-5" />
-                {item.badge && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-950 shadow-sm" />
-                )}
               </div>
-              <span className="text-[8px] font-black uppercase tracking-tighter text-center leading-none">
+              <span className="text-[9px] font-black uppercase tracking-tight text-center leading-none">
                 {item.label}
               </span>
             </Link>
           ))}
         </div>
       </nav>
+
+      {/* --- MOBILE RIGHT SIDE DOCK --- */}
+      <div className="md:hidden fixed right-0 top-1/2 -translate-y-1/2 z-[95] flex items-center">
+        {/* Toggle Tab */}
+        <button
+          onClick={() => setSideOpen(!sideOpen)}
+          className={cn(
+            "w-7 h-14 rounded-l-2xl flex items-center justify-center shadow-lg transition-all duration-300",
+            sideOpen
+              ? "bg-violet-600 text-white"
+              : "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-violet-500 border border-r-0 border-slate-200 dark:border-white/10"
+          )}
+        >
+          {sideOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        {/* Dock Panel */}
+        <div
+          className={cn(
+            "flex flex-col gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-r-0 border-slate-200 dark:border-white/10 shadow-2xl shadow-black/10 transition-all duration-300 ease-in-out overflow-hidden rounded-l-2xl",
+            sideOpen ? "p-1.5 opacity-100 max-w-[200px]" : "max-w-0 opacity-0 p-0 border-0"
+          )}
+        >
+          {sideDockItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              onClick={() => setSideOpen(false)}
+              className={cn(
+                "relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all whitespace-nowrap",
+                item.active
+                  ? "bg-violet-500 text-white shadow-md shadow-violet-500/25"
+                  : "text-slate-500 hover:bg-violet-50 dark:hover:bg-white/5 hover:text-violet-600 dark:hover:text-white"
+              )}
+            >
+              <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+              <span className="text-xs font-bold">{item.label}</span>
+              {item.badge && (
+                <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+              )}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Side Dock Backdrop */}
+      {sideOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-[94] bg-black/20"
+          onClick={() => setSideOpen(false)}
+        />
+      )}
     </>
   );
 }

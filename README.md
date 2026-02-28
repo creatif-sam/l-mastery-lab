@@ -1,6 +1,6 @@
 # Language Mastery Lab (LML)
 
-> A collaborative language-learning platform powered by **Next.js 15**, **Supabase**, and **AI-assisted pedagogy**. Students, tutors, and administrators interact in a structured environment designed to accelerate language acquisition through lessons, quizzes, community, and real-time mentorship.
+> A collaborative language-learning platform powered by Next.js 15, Supabase, and Collaboration-assisted pedagogy. Students, tutors, and administrators interact in a structured environment designed to accelerate language acquisition through lessons, quizzes, community, and real-time mentorship.
 
 ---
 
@@ -24,13 +24,13 @@
 
 ## Overview
 
-Language Mastery Lab is a **multi-role SaaS platform** where:
+Language Mastery Lab is a multi-role SaaS platform where:
 
 | Role | What they do |
 |------|------|
-| **Student** | Take lessons, attempt quizzes, track XP & rankings, join groups, message tutors, read blogs |
-| **Tutor** | Manage assigned students, create/grade quizzes, post blogs, send notifications |
-| **Admin** | Full platform oversight — users, analytics, mail campaigns, community moderation, platform logs |
+| Student | Take lessons, attempt quizzes, track XP & rankings, join groups, message tutors, read blogs |
+| Tutor | Manage assigned students, create/grade quizzes, post blogs, send notifications |
+| Admin | Full platform oversight — users, analytics, mail campaigns, community moderation, platform logs |
 
 ---
 
@@ -55,18 +55,18 @@ Language Mastery Lab is a **multi-role SaaS platform** where:
 
 ### Student Dashboard
 
-- **Home** — Personalized greeting, XP progress, group stats, upcoming meeting cards, phrase of the day
-- **Lessons** — Categorised lesson modules with completion tracking
-- **Quiz** — Timed quizzes with score recording and history
-- **Rankings** — Leaderboard within organization and groups
-- **Community** — Posts, replies, reactions; community point system
-- **Blog** — Read and share published blog posts
-- **Messages / Inbox** — Direct messaging with tutors
-- **Network** — Find and connect with language partners
-- **Notifications** — Real-time bell with unread badge
-- **Settings** — Profile, target language, level, country
+- Home — Personalized greeting, XP progress, group stats, upcoming meeting cards, phrase of the day
+- Lessons — Categorised lesson modules with completion tracking
+- Quiz — Timed quizzes with score recording and history
+- Rankings — Leaderboard within organization and groups
+- Community — Posts, replies, reactions; community point system
+- Blog — Read and share published blog posts
+- Messages / Inbox — Direct messaging with tutors
+- Network — Find and connect with language partners
+- Notifications — Real-time bell with unread badge
+- Settings — Profile, target language, level, country
 
-> **Copy protection** is enforced on all student pages — text selection, clipboard events, right-click, and keyboard shortcuts (`Ctrl+C`, `Ctrl+A`, `Ctrl+S`, `PrtSc`, etc.) are blocked and a Sonner toast informs the student why.
+> Copy protection is enforced on all student pages — text selection, clipboard events, right-click, and keyboard shortcuts (`Ctrl+C`, `Ctrl+A`, `Ctrl+S`, `PrtSc`, etc.) are blocked and a Sonner toast informs the student why.
 
 ---
 
@@ -87,17 +87,17 @@ Located at `/protected/admin`, role-gated to `admin`.
 
 | Section | Path | What it shows |
 |---------|------|---------------|
-| **Overview** | `/admin` | KPI cards, recent users, top learners, weekly activity |
-| **Users** | `/admin/users` | Full user list with role, language, level, XP |
-| **Tutors** | `/admin/tutors` | Tutor-specific management |
-| **Analytics** | `/admin/analytics` | Role breakdown, language distribution, level buckets |
-| **Community** | `/admin/community` | Moderate community posts |
-| **Messages** | `/admin/messages` | Platform-wide message view |
-| **Mail Campaigns** | `/admin/mail` | Send bulk email campaigns via Resend |
-| **Blog** | `/admin/blog` | Approve / manage blog posts |
-| **Notifications** | `/admin/notifications` | Send platform notifications |
-| **Platform Logs** | `/admin/logs` | Real-time activity feed — who did what, when, from where |
-| **Settings** | `/admin/settings` | Platform configuration |
+| Overview | `/admin` | KPI cards, recent users, top learners, weekly activity |
+| Users | `/admin/users` | Full user list with role, language, level, XP |
+| Tutors | `/admin/tutors` | Tutor-specific management |
+| Analytics | `/admin/analytics` | Role breakdown, language distribution, level buckets |
+| Community | `/admin/community` | Moderate community posts |
+| Messages | `/admin/messages` | Platform-wide message view |
+| Mail Campaigns | `/admin/mail` | Send bulk email campaigns via Resend |
+| Blog | `/admin/blog` | Approve / manage blog posts |
+| Notifications | `/admin/notifications` | Send platform notifications |
+| Platform Logs | `/admin/logs` | Real-time activity feed — who did what, when, from where |
+| Settings | `/admin/settings` | Platform configuration |
 
 ---
 
@@ -167,7 +167,7 @@ Located at `/protected/admin`, role-gated to `admin`.
 | `platform_logs` | Structured activity log — user, action, entity, metadata, IP |
 | `contact_messages` | Contact form submissions |
 
-All tables have **Row Level Security (RLS)** enabled.
+All tables have Row Level Security (RLS) enabled.
 
 ---
 
@@ -245,12 +245,12 @@ npm run start
 
 | Measure | Detail |
 |---------|--------|
-| **Row Level Security** | Every Supabase table has RLS; policies enforce role-based access |
-| **Server-side auth** | Every protected page validates session + role before rendering |
-| **Copy protection** | Student pages block clipboard, right-click, print & screenshot shortcuts |
-| **Env isolation** | `SUPABASE_SERVICE_ROLE_KEY` is server-only, never exposed client-side |
-| **Email confirmation** | Sign-up requires email verification |
-| **Admin-only routes** | All `/protected/admin/*` routes redirect non-admins |
+| Row Level Security | Every Supabase table has RLS; policies enforce role-based access |
+| Server-side auth | Every protected page validates session + role before rendering |
+| Copy protection | Student pages block clipboard, right-click, print & screenshot shortcuts |
+| Env isolation | `SUPABASE_SERVICE_ROLE_KEY` is server-only, never exposed client-side |
+| Email confirmation | Sign-up requires email verification |
+| Admin-only routes | All `/protected/admin/` routes redirect non-admins |
 
 ---
 
@@ -321,8 +321,8 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
   ```
   > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
+  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new publishable key format.
+  > Both legacy anon keys and new publishable keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
   > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
 
   Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
@@ -348,3 +348,4 @@ Please file feedback and issues over on the [Supabase GitHub org](https://github
 - [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
 - [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
 - [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+
