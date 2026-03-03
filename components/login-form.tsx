@@ -57,7 +57,7 @@ export function LoginForm({
   return (
     <div className={cn("w-full max-w-md mx-auto space-y-8", className)} {...props}>
       <header className="space-y-2 text-left">
-        <h1 className="text-4xl font-black text-[#003366] tracking-tight italic">
+        <h1 className="text-4xl font-black text-[#003366] tracking-tight">
           Login<span className="text-violet-600">.</span>
         </h1>
         <p className="text-zinc-400 text-sm font-medium">
@@ -130,7 +130,7 @@ export function LoginForm({
 
         <Button 
           type="submit" 
-          className="w-full h-11 bg-[#003366] hover:bg-violet-700 text-white rounded-xl font-black tracking-[0.2em] text-xs transition-all shadow-xl active:scale-[0.98]" 
+          className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white rounded font-black tracking-[0.2em] text-xs transition-all shadow-xl active:scale-[0.98]" 
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENTER THE LAB"}

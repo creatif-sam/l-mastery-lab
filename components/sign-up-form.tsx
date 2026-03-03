@@ -99,7 +99,7 @@ export function SignUpForm() {
   return (
     <div className="w-full max-w-2xl mx-auto px-4 sm:px-0 space-y-8 py-8">
       <header className="space-y-1">
-        <h1 className="text-3xl md:text-4xl font-black text-[#003366] tracking-tight italic">
+        <h1 className="text-3xl md:text-4xl font-black text-[#003366] tracking-tight">
           Sign Up<span className="text-violet-600">.</span>
         </h1>
         <p className="text-zinc-400 text-sm font-medium">Start your mastery journey with some facts about you.</p>
@@ -175,7 +175,7 @@ export function SignUpForm() {
                 type="button"
                 onClick={() => setFormData({...formData, targetLanguage: lang as any})}
                 className={cn(
-                  "py-3 rounded-xl text-[10px] font-black tracking-widest transition-all border uppercase",
+                  "py-3 rounded text-[10px] font-black tracking-widest transition-all border uppercase",
                   formData.targetLanguage === lang 
                     ? "bg-violet-600 border-violet-600 text-white shadow-lg" 
                     : "bg-white border-zinc-200 text-zinc-400 hover:border-violet-200"
@@ -222,7 +222,7 @@ export function SignUpForm() {
         <button 
           type="submit"
           disabled={isLoading}
-          className="w-full py-3.5 bg-[#003366] text-white rounded-xl font-black tracking-[0.2em] transition-all text-xs hover:bg-violet-700 shadow-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-violet-600 text-white rounded font-black tracking-[0.2em] transition-all text-xs hover:bg-violet-700 shadow-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
           {isLoading ? "ENROLLING..." : "CREATE MASTER PROFILE"}
