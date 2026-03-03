@@ -20,6 +20,7 @@ import {
   MoreHorizontal,
   X,
   Activity,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -56,6 +57,7 @@ export function AdminSidebar() {
     { icon: LayoutDashboard, label: "Overview",       href: "/protected/admin",              exact: true },
     { icon: Users,           label: "Users",          href: "/protected/admin/users" },
     { icon: GraduationCap,   label: "Tutors",         href: "/protected/admin/tutors" },
+    { icon: Building2,       label: "Organisations",  href: "/protected/admin/organizations" },
     { icon: BarChart3,       label: "Analytics",      href: "/protected/admin/analytics" },
     { icon: MessageSquare,   label: "Community",      href: "/protected/admin/community" },
     { icon: MessageCircle,   label: "Messages",       href: "/protected/admin/messages" },

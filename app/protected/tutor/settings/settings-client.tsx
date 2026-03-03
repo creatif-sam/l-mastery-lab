@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import {
   User, Mail, Shield, Building2, Camera, Loader2, Save, Calendar,
-  Video, Link2, Trash2, Plus, Send, MessageSquare, Clock,
+  Video, Link2, Trash2, Plus, Send, MessageSquare, Clock, Globe,
+  MapPin, Star, Zap, Trophy, Users,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -16,7 +17,20 @@ interface Profile {
   role: string;
   avatar_url: string | null;
   organization_id: string | null;
+  group_id: string | null;
   created_at: string;
+  target_language: string | null;
+  country_birth: string | null;
+  country_residence: string | null;
+  xp: number;
+  level: number;
+  community_points: number;
+}
+
+interface OrgInfo {
+  id: string;
+  name: string;
+  logo_url: string | null;
 }
 
 interface Meeting {
@@ -29,28 +43,33 @@ interface Meeting {
 
 export function TutorSettingsClient({
   profile,
-  orgName,
+  org,
+  groupName,
   upcomingMeetings: initialMeetings,
 }: {
   profile: Profile;
-  orgName: string | null;
+  org: OrgInfo | null;
+  groupName: string | null;
   upcomingMeetings: Meeting[];
 }) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Profile state ──────────────────────────────────────────────────────────
-  const [fullName, setFullName] = useState(profile.full_name ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
-  const [saving, setSaving] = useState(false);
+  // ── Editable profile state ─────────────────────────────────────────────────
+  const [fullName, setFullName]           = useState(profile.full_name ?? "");
+  const [avatarUrl, setAvatarUrl]         = useState(profile.avatar_url ?? "");
+  const [localAvatar, setLocalAvatar]     = useState(profile.avatar_url ?? "");
+  const [targetLang, setTargetLang]       = useState(profile.target_language ?? "");
+  const [countryBirth, setCountryBirth]   = useState(profile.country_birth ?? "");
+  const [countryRes, setCountryRes]       = useState(profile.country_residence ?? "");
+  const [saving, setSaving]               = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [localAvatar, setLocalAvatar] = useState(profile.avatar_url ?? "");
 
   // ── Meeting state ──────────────────────────────────────────────────────────
-  const [meetings, setMeetings] = useState<Meeting[]>(initialMeetings);
-  const [meetingTitle, setMeetingTitle] = useState("");
-  const [meetingDate, setMeetingDate] = useState("");
-  const [meetingLink, setMeetingLink] = useState("");
+  const [meetings, setMeetings]           = useState<Meeting[]>(initialMeetings);
+  const [meetingTitle, setMeetingTitle]   = useState("");
+  const [meetingDate, setMeetingDate]     = useState("");
+  const [meetingLink, setMeetingLink]     = useState("");
   const [savingMeeting, setSavingMeeting] = useState(false);
 
   // ── Contact Admin state ────────────────────────────────────────────────────
@@ -64,25 +83,29 @@ export function TutorSettingsClient({
 
   const detectPlatform = (link: string): string => {
     if (link.includes("meet.google.com")) return "Google Meet";
-    if (link.includes("zoom.us")) return "Zoom";
-    if (link.includes("teams.microsoft.com")) return "Teams";
+    if (link.includes("zoom.us"))         return "Zoom";
+    if (link.includes("teams.microsoft")) return "Teams";
     return "Video Call";
   };
+
+  const langLabel = (v: string) =>
+    v === "french" ? "French" : v === "english" ? "English" : v === "both" ? "Both" : "—";
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingAvatar(true);
-    const ext = file.name.split(".").pop();
-    const path = `avatars/${profile.id}.${ext}`;
-    const { error } = await supabase.storage.from("uploads").upload(path, file, { upsert: true });
+    const ext  = file.name.split(".").pop();
+    // Path: avatars/<user_id>.<ext>  — matches the storage policy
+    const path = `${profile.id}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (error) {
-      toast.error("Avatar upload failed. Make sure the 'uploads' bucket exists.");
+      toast.error(`Avatar upload failed: ${error.message}`);
       setUploadingAvatar(false);
       return;
     }
-    const { data: { publicUrl } } = supabase.storage.from("uploads").getPublicUrl(path);
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
     setAvatarUrl(publicUrl);
     setLocalAvatar(publicUrl);
     toast.success("Avatar uploaded!");
@@ -94,17 +117,23 @@ export function TutorSettingsClient({
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), avatar_url: avatarUrl || null })
+      .update({
+        full_name:         fullName.trim(),
+        avatar_url:        avatarUrl.trim() || null,
+        target_language:   targetLang || null,
+        country_birth:     countryBirth.trim() || null,
+        country_residence: countryRes.trim()   || null,
+      })
       .eq("id", profile.id);
     if (error) { toast.error("Failed to save changes"); setSaving(false); return; }
-    toast.success("Profile updated successfully!");
+    toast.success("Profile updated!");
     setSaving(false);
   };
 
   const handleScheduleMeeting = async () => {
     if (!meetingTitle.trim()) { toast.error("Please enter a meeting title"); return; }
-    if (!meetingDate) { toast.error("Please select a date & time"); return; }
-    if (!meetingLink.trim()) { toast.error("Please paste the meeting link"); return; }
+    if (!meetingDate)         { toast.error("Please select a date & time");   return; }
+    if (!meetingLink.trim())  { toast.error("Please paste the meeting link"); return; }
     if (!profile.organization_id) { toast.error("You are not assigned to an organisation yet"); return; }
 
     setSavingMeeting(true);
@@ -113,11 +142,11 @@ export function TutorSettingsClient({
       .from("meetings")
       .insert({
         organization_id: profile.organization_id,
-        title: meetingTitle.trim(),
+        title:           meetingTitle.trim(),
         platform,
-        meeting_link: meetingLink.trim(),
-        start_time: new Date(meetingDate).toISOString(),
-        created_by: profile.id,
+        meeting_link:    meetingLink.trim(),
+        start_time:      new Date(meetingDate).toISOString(),
+        created_by:      profile.id,
       })
       .select()
       .single();
@@ -129,9 +158,7 @@ export function TutorSettingsClient({
         (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
       )
     );
-    setMeetingTitle("");
-    setMeetingDate("");
-    setMeetingLink("");
+    setMeetingTitle(""); setMeetingDate(""); setMeetingLink("");
     toast.success(`Meeting scheduled for ${format(new Date(meetingDate), "dd MMM yyyy, p")}!`);
     setSavingMeeting(false);
   };
@@ -154,17 +181,16 @@ export function TutorSettingsClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: profile.full_name,
-          email: profile.email,
+          name:     profile.full_name,
+          email:    profile.email,
           category: "tutor-admin",
-          subject: contactSubject.trim(),
-          message: contactMessage.trim(),
+          subject:  contactSubject.trim(),
+          message:  contactMessage.trim(),
         }),
       });
-      if (!res.ok) throw new Error("Server error");
+      if (!res.ok) throw new Error();
       toast.success("Message sent to admin!");
-      setContactSubject("");
-      setContactMessage("");
+      setContactSubject(""); setContactMessage("");
     } catch {
       toast.error("Failed to send message. Please try again.");
     }
@@ -205,12 +231,32 @@ export function TutorSettingsClient({
             <span className="inline-block mt-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 capitalize">
               {profile.role}
             </span>
-            {orgName && (
+            {org && (
               <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                <Building2 size={11} /> {orgName}
+                {org.logo_url
+                  ? <img src={org.logo_url} alt={org.name} className="w-4 h-4 rounded object-cover" />
+                  : <Building2 size={11} />
+                }
+                {org.name}
+                {groupName && <span className="text-slate-400">· {groupName}</span>}
               </p>
             )}
           </div>
+        </div>
+
+        {/* XP / Level / CP quick stats */}
+        <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-slate-100 dark:border-white/5">
+          {[
+            { icon: Zap,    label: "XP",              value: profile.xp.toLocaleString(),                        color: "text-amber-500",  bg: "bg-amber-500/10"  },
+            { icon: Trophy, label: "Level",            value: `Level ${profile.level}`,                           color: "text-violet-500", bg: "bg-violet-500/10" },
+            { icon: Star,   label: "Community Points", value: Number(profile.community_points).toLocaleString(),  color: "text-blue-500",   bg: "bg-blue-500/10"   },
+          ].map((s) => (
+            <div key={s.label} className={`${s.bg} rounded-xl p-3 flex flex-col items-center text-center`}>
+              <s.icon size={16} className={`${s.color} mb-1`} />
+              <p className="text-lg font-black text-slate-900 dark:text-white">{s.value}</p>
+              <p className="text-[10px] text-slate-500 font-medium">{s.label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -220,6 +266,7 @@ export function TutorSettingsClient({
           <User size={16} className="text-emerald-500" /> Profile Information
         </h3>
 
+        {/* Full name */}
         <div>
           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Full Name</label>
           <input
@@ -230,15 +277,65 @@ export function TutorSettingsClient({
           />
         </div>
 
+        {/* Avatar URL */}
         <div>
           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Avatar URL</label>
           <input
             value={avatarUrl}
             onChange={(e) => { setAvatarUrl(e.target.value); setLocalAvatar(e.target.value); }}
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            placeholder="https://... or upload via the camera icon"
+            placeholder="https://… or upload via the camera icon"
           />
           <p className="text-[11px] text-slate-400 mt-1">Paste a URL or click the camera icon to upload a file.</p>
+        </div>
+
+        {/* Target language */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+            <Globe size={11} /> Target Language
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {["french", "english", "both"].map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setTargetLang(lang === targetLang ? "" : lang)}
+                className={`py-2.5 rounded-xl border text-xs font-bold capitalize transition-all ${
+                  targetLang === lang
+                    ? "bg-emerald-600 border-emerald-600 text-white shadow"
+                    : "border-slate-200 dark:border-white/10 text-slate-500 hover:border-emerald-400 dark:hover:border-emerald-500"
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Country birth & residence in 2 columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+              <MapPin size={11} /> Country of Birth
+            </label>
+            <input
+              value={countryBirth}
+              onChange={(e) => setCountryBirth(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              placeholder="e.g. Kenya"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+              <MapPin size={11} /> Country of Residence
+            </label>
+            <input
+              value={countryRes}
+              onChange={(e) => setCountryRes(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              placeholder="e.g. France"
+            />
+          </div>
         </div>
 
         <button
@@ -256,37 +353,44 @@ export function TutorSettingsClient({
         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Shield size={16} className="text-blue-500" /> Account Details
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { icon: Mail, label: "Email", value: profile.email },
-            { icon: Shield, label: "Role", value: profile.role, className: "capitalize" },
-            { icon: Calendar, label: "Joined", value: format(new Date(profile.created_at), "dd MMM yyyy") },
+            { icon: Mail,     label: "Email",     value: profile.email },
+            { icon: Shield,   label: "Role",      value: profile.role,  className: "capitalize" },
+            { icon: Calendar, label: "Joined",    value: format(new Date(profile.created_at), "dd MMM yyyy") },
+            { icon: Globe,    label: "Language",  value: langLabel(targetLang) || "—" },
+            { icon: MapPin,   label: "Born in",   value: countryBirth  || "—" },
+            { icon: MapPin,   label: "Lives in",  value: countryRes    || "—" },
           ].map((item) => (
             <div key={item.label} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-              <item.icon size={15} className="text-slate-400 mt-0.5 flex-shrink-0" />
+              <item.icon size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-[11px] uppercase tracking-wider font-bold text-slate-400">{item.label}</p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{item.label}</p>
                 <p className={`text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5 ${item.className ?? ""}`}>{item.value}</p>
               </div>
             </div>
           ))}
+        </div>
 
-          {/* Organisation – locked, cannot be changed */}
-          <div className="flex items-start gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-500/20 rounded-xl sm:col-span-2">
-            <Building2 size={15} className="text-emerald-500 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-[11px] uppercase tracking-wider font-bold text-emerald-500">Organisation</p>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-                {orgName ?? "Not assigned"}
-              </p>
-              <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/60 mt-0.5">
-                Organisation assignment is managed by your admin and cannot be changed here.
-              </p>
-            </div>
-            <span className="text-[9px] font-bold uppercase bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 px-2 py-1 rounded-full flex-shrink-0">
-              Locked
-            </span>
+        {/* Organisation & Group — locked */}
+        <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-500/20 rounded-xl">
+          {org?.logo_url
+            ? <img src={org.logo_url} alt={org.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-emerald-200 dark:border-emerald-500/30" />
+            : <Building2 size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+          }
+          <div className="flex-1">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Organisation · Group</p>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
+              {org?.name ?? "Not assigned"}
+              {groupName && <span className="text-slate-400 font-normal"> · {groupName}</span>}
+            </p>
+            <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/60 mt-0.5">
+              Managed by your admin — cannot be changed here.
+            </p>
           </div>
+          <span className="text-[9px] font-bold uppercase bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 px-2 py-1 rounded-full flex-shrink-0">
+            Locked
+          </span>
         </div>
       </div>
 
@@ -297,7 +401,7 @@ export function TutorSettingsClient({
             <Video size={16} className="text-violet-500" /> Schedule a Meeting
           </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Post a Google Meet or Zoom session. Students will see it highlighted on their monthly calendar.
+            Post a Google Meet or Zoom session visible to your organisation students.
           </p>
         </div>
 
@@ -337,7 +441,7 @@ export function TutorSettingsClient({
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40"
               placeholder="https://meet.google.com/abc-def  or  https://zoom.us/j/123"
             />
-            <p className="text-[11px] text-slate-400 mt-1">Platform (Google Meet / Zoom) is detected automatically from the link.</p>
+            <p className="text-[11px] text-slate-400 mt-1">Platform is auto-detected from the link.</p>
           </div>
 
           <button
@@ -350,7 +454,6 @@ export function TutorSettingsClient({
           </button>
         </div>
 
-        {/* Upcoming meetings list */}
         {meetings.length > 0 && (
           <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-white/5">
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Scheduled Sessions</p>
@@ -410,7 +513,7 @@ export function TutorSettingsClient({
               onChange={(e) => setContactMessage(e.target.value)}
               rows={4}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 resize-none"
-              placeholder="Describe your question or issue in detail…"
+              placeholder="Describe your question or issue…"
             />
           </div>
           <button
