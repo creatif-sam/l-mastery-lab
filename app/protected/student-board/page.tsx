@@ -292,7 +292,7 @@ export default async function StudentDashboard() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Learning Path</h3>
-                    <Link href="/student-board/lessons" className="text-xs font-bold text-violet-600 hover:underline transition-all">View All</Link>
+                    <Link href="/protected/student-board/lessons" className="text-xs font-bold text-violet-600 hover:underline transition-all">View All</Link>
                   </div>
 
                   <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/5 p-6 shadow-sm group cursor-pointer hover:border-violet-500/50 transition-all">
