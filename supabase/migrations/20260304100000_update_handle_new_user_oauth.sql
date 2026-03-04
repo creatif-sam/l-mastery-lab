@@ -14,7 +14,16 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  org_id_val UUID;
 BEGIN
+  -- Safely parse organization_id if it exists
+  BEGIN
+    org_id_val := (NEW.raw_user_meta_data->>'organization_id')::uuid;
+  EXCEPTION WHEN OTHERS THEN
+    org_id_val := NULL;
+  END;
+
   -- Insert profile with metadata from either email signup or OAuth
   INSERT INTO public.profiles (
     id,
@@ -27,7 +36,8 @@ BEGIN
     country_residence,
     xp,
     level,
-    community_points
+    community_points,
+    group_id
   )
   VALUES (
     NEW.id,
@@ -35,7 +45,7 @@ BEGIN
     COALESCE(
       NEW.raw_user_meta_data->>'full_name',
       NEW.raw_user_meta_data->>'name',
-      ''
+      split_part(NEW.email, '@', 1)  -- Fallback to email username
     ),
     -- Get avatar from OAuth (picture, avatar_url) or email signup (avatar_url)
     COALESCE(
@@ -43,33 +53,41 @@ BEGIN
       NEW.raw_user_meta_data->>'picture',
       NULL
     ),
-    -- Default role is student for OAuth, or from signup metadata
-    COALESCE(NEW.raw_user_meta_data->>'role', 'student'),
+    -- Default role is student for OAuth, or from signup metadata (cast to app_role)
+    COALESCE(NEW.raw_user_meta_data->>'role', 'student')::public.app_role,
     -- Organization ID (only from email signup, not OAuth)
-    COALESCE((NEW.raw_user_meta_data->>'organization_id')::uuid, NULL),
+    org_id_val,
     -- Target language (only from email signup, not OAuth)
-    COALESCE(NEW.raw_user_meta_data->>'target_language', NULL),
+    NEW.raw_user_meta_data->>'target_language',
     -- Country of birth (only from email signup, not OAuth)
-    COALESCE(NEW.raw_user_meta_data->>'country_birth', NULL),
+    NEW.raw_user_meta_data->>'country_birth',
     -- Country of residence (only from email signup, not OAuth)
-    COALESCE(NEW.raw_user_meta_data->>'country_residence', NULL),
+    NEW.raw_user_meta_data->>'country_residence',
     0,  -- xp starts at 0
     1,  -- level starts at 1
-    0   -- community_points starts at 0
+    0.00,  -- community_points starts at 0.00 (numeric)
+    NULL  -- group_id starts as NULL
   )
   ON CONFLICT (id) DO UPDATE SET
-    -- If profile already exists (race condition), update with OAuth data
-    full_name = COALESCE(
-      EXCLUDED.full_name,
-      public.profiles.full_name
-    ),
-    avatar_url = COALESCE(
-      EXCLUDED.avatar_url,
-      public.profiles.avatar_url
-    ),
+    -- If profile already exists (race condition), update with OAuth data only if new data provided
+    full_name = CASE
+      WHEN EXCLUDED.full_name IS NOT NULL AND EXCLUDED.full_name != '' 
+      THEN EXCLUDED.full_name
+      ELSE public.profiles.full_name
+    END,
+    avatar_url = CASE
+      WHEN EXCLUDED.avatar_url IS NOT NULL 
+      THEN EXCLUDED.avatar_url
+      ELSE public.profiles.avatar_url
+    END,
     updated_at = NOW();
   
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log error but don't fail the user creation
+    RAISE WARNING 'Error creating profile for user %: %', NEW.id, SQLERRM;
+    RETURN NEW;
 END;
 $$;
 

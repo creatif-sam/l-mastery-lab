@@ -3,11 +3,17 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { User, Mail, Shield, LogOut, Save, Loader2, ArrowLeft, Camera } from "lucide-react";
+import { User, Mail, Shield, LogOut, Save, Loader2, ArrowLeft, Camera, MapPin, Home, Building2 } from "lucide-react";
 import { Sidebar } from "../components/sidebar";
 import { Header } from "../components/header";
 import Link from "next/link";
 import Image from "next/image";
+
+type Organization = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+};
 
 export default function SettingsPage() {
   const supabase = createClient();
@@ -15,7 +21,16 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [profile, setProfile] = useState({ id: "", full_name: "", email: "", avatar_url: "" });
+  const [profile, setProfile] = useState({ 
+    id: "", 
+    full_name: "", 
+    email: "", 
+    avatar_url: "",
+    organization_id: null as string | null,
+    country_birth: "",
+    country_residence: ""
+  });
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
 
   useEffect(() => {
     async function getProfile() {
@@ -23,19 +38,32 @@ export default function SettingsPage() {
       if (user) {
         const { data } = await supabase
           .from("profiles")
-          .select("id, full_name, avatar_url")
+          .select("id, full_name, avatar_url, organization_id, country_birth, country_residence")
           .eq("id", user.id)
           .single();
         setProfile({ 
           id: user.id,
           full_name: data?.full_name || "", 
           email: user.email || "",
-          avatar_url: data?.avatar_url || "" 
+          avatar_url: data?.avatar_url || "",
+          organization_id: data?.organization_id || null,
+          country_birth: data?.country_birth || "",
+          country_residence: data?.country_residence || ""
         });
       }
       setLoading(false);
     }
+
+    async function getOrganizations() {
+      const { data } = await supabase
+        .from("organizations")
+        .select("id, name, logo_url")
+        .order("name");
+      if (data) setOrganizations(data);
+    }
+
     getProfile();
+    getOrganizations();
   }, []);
 
   // --- 📸 AVATAR UPLOAD LOGIC ---
@@ -82,7 +110,12 @@ export default function SettingsPage() {
     setUpdating(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: profile.full_name })
+      .update({ 
+        full_name: profile.full_name,
+        organization_id: profile.organization_id,
+        country_birth: profile.country_birth,
+        country_residence: profile.country_residence
+      })
       .eq("id", profile.id);
 
     if (!error) router.refresh();
@@ -160,6 +193,53 @@ export default function SettingsPage() {
 
                 <div className="space-y-2 opacity-60">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Email (Account ID)</label>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Organization</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <select
+                      value={profile.organization_id || "solo"}
+                      onChange={(e) => setProfile({...profile, organization_id: e.target.value === "solo" ? null : e.target.value})}
+                      className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-violet-500/20 outline-none transition-all font-bold appearance-none cursor-pointer"
+                    >
+                      <option value="solo">🎓 Learning Solo (No organization)</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={org.id}>
+                          {org.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Country of Birth</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={profile.country_birth}
+                      onChange={(e) => setProfile({...profile, country_birth: e.target.value})}
+                      placeholder="e.g. Ghana, Nigeria, Senegal..."
+                      className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-violet-500/20 outline-none transition-all font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Country of Residence</label>
+                  <div className="relative">
+                    <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={profile.country_residence}
+                      onChange={(e) => setProfile({...profile, country_residence: e.target.value})}
+                      placeholder="e.g. France, Belgium, Morocco..."
+                      className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-violet-500/20 outline-none transition-all font-bold"
+                    />
+                  </div>
+                </div>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input type="email" value={profile.email} disabled className="w-full bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-4 text-sm cursor-not-allowed" />
