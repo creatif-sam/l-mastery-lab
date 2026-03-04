@@ -216,7 +216,7 @@ export default async function StudentDashboard() {
           <div className="max-w-6xl mx-auto space-y-8">
             
             {/* PROFILE COMPLETION BANNER */}
-            {profileCompletion < 100 && (
+            {(profileCompletion < 100 && profileCompletion > 0) && (
               <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl border border-red-400 p-6 shadow-lg">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">

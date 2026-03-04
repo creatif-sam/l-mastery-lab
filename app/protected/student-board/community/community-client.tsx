@@ -106,15 +106,28 @@ export function CommunityClient({
     const existing = reactions.find((r) => r.post_id === postId && r.type === type);
     if (existing) {
       // Remove reaction
-      await supabase.from("community_reactions").delete()
+      const { error } = await supabase.from("community_reactions").delete()
         .eq("post_id", postId).eq("user_id", currentUser.id).eq("type", type);
+      if (error) {
+        console.error("Error removing reaction:", error);
+        toast.error("Failed to remove reaction: " + error.message);
+        return;
+      }
       setReactions((prev) => prev.filter((r) => !(r.post_id === postId && r.type === type)));
       setPosts((prev) => prev.map((p) => p.id === postId
         ? { ...p, likes_count: type === "like" ? Math.max(0, p.likes_count - 1) : p.likes_count, loves_count: type === "love" ? Math.max(0, p.loves_count - 1) : p.loves_count }
         : p));
     } else {
       const { error } = await supabase.from("community_reactions").insert({ post_id: postId, user_id: currentUser.id, type });
-      if (error) { if (error.code === "23505") { toast("Already reacted!"); } return; }
+      if (error) {
+        console.error("Error adding reaction:", error);
+        if (error.code === "23505") {
+          toast("Already reacted!");
+        } else {
+          toast.error("Failed to add reaction: " + error.message);
+        }
+        return;
+      }
       setReactions((prev) => [...prev, { post_id: postId, type }]);
       setPosts((prev) => prev.map((p) => p.id === postId
         ? { ...p, likes_count: type === "like" ? p.likes_count + 1 : p.likes_count, loves_count: type === "love" ? p.loves_count + 1 : p.loves_count }
@@ -149,7 +162,11 @@ export function CommunityClient({
       .insert({ post_id: postId, author_id: currentUser.id, content: text })
       .select("id, content, created_at, author:profiles!community_comments_author_id_fkey(id, full_name)")
       .single();
-    if (error) { toast.error("Couldn't post comment"); return; }
+    if (error) {
+      console.error("Error posting comment:", error);
+      toast.error("Couldn't post comment: " + error.message);
+      return;
+    }
     setPostComments((prev) => ({ ...prev, [postId]: [...(prev[postId] ?? []), data as any] }));
     setCommentTexts((prev) => ({ ...prev, [postId]: "" }));
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p));
