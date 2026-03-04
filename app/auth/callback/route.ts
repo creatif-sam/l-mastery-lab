@@ -23,36 +23,23 @@ export async function GET(request: NextRequest) {
       if (isOAuth) {
         // OAuth sign-in: Keep session and redirect to appropriate dashboard
         
-        // Fetch or create profile
-        let { data: profile } = await supabase
+        // Wait a moment for the database trigger to create the profile
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Fetch profile (should exist now from trigger)
+        const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", data.user.id)
-          .single();
+          .maybeSingle();
 
-        // If profile doesn't exist (first-time OAuth user), create it
-        if (!profile) {
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: data.user.id,
-              full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || "",
-              avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
-              role: "student", // Default role for OAuth users
-              xp: 0,
-              level: 1,
-              community_points: 0,
-            });
-
-          if (!insertError) {
-            profile = { role: "student" };
-          }
-        }
+        // Determine role (default to student if profile fetch failed)
+        const userRole = profile?.role || "student";
 
         // Redirect based on role
-        if (profile?.role === "admin") {
+        if (userRole === "admin") {
           redirect(`${origin}/protected/admin`);
-        } else if (profile?.role === "tutor") {
+        } else if (userRole === "tutor") {
           redirect(`${origin}/protected/tutor`);
         } else {
           redirect(`${origin}/protected/student-board`);
