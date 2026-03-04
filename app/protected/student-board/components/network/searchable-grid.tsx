@@ -16,8 +16,9 @@ export function SearchableGrid({ members, userId, sentRequests, isMyGroupFull }:
     const matchesSearch = m.full_name.toLowerCase().includes(query.toLowerCase()) ||
                          (m.role && m.role.toLowerCase().includes(query.toLowerCase()));
     
-    // Consider "Active" if updated within the last 10 minutes
-    const isActive = m.last_online ? differenceInMinutes(new Date(), new Date(m.last_online)) < 10 : false;
+    // Consider "Active" if updated within the last 10 minutes (use last_online or updated_at)
+    const activityTime = m.last_online || m.updated_at;
+    const isActive = activityTime ? differenceInMinutes(new Date(), new Date(activityTime)) < 10 : false;
     
     if (showActiveOnly) return matchesSearch && isActive;
     return matchesSearch;
@@ -58,10 +59,11 @@ export function SearchableGrid({ members, userId, sentRequests, isMyGroupFull }:
           filteredMembers.map((member: any) => {
             const isMe = member.id === userId;
             const activeRequest = sentRequests?.find((r: any) => r.receiver_id === member.id);
-            const minutesAgo = member.last_online ? differenceInMinutes(new Date(), new Date(member.last_online)) : 999;
+            const activityTime = member.last_online || member.updated_at;
+            const minutesAgo = activityTime ? differenceInMinutes(new Date(), new Date(activityTime)) : 999;
             const isActive = minutesAgo < 10;
-            const onlineStatus = member.last_online
-              ? formatDistanceToNow(new Date(member.last_online), { addSuffix: true })
+            const onlineStatus = activityTime
+              ? formatDistanceToNow(new Date(activityTime), { addSuffix: true })
               : "Active";
 
             return (

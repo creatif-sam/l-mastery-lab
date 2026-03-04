@@ -32,17 +32,28 @@ export default async function OrganizationRankingPage() {
 
   // 1. FETCH DATA FOR CALCULATION
   // Quiz: Fetch all top scores from the leaderboard view
-  const { data: quizData } = await supabase
+  // If user has no organization, show all users; otherwise filter by organization
+  let quizQuery = supabase
     .from("org_leaderboard")
-    .select("top_score, full_name, profile_id")
-    .eq("organization_id", profile?.organization_id);
+    .select("top_score, full_name, profile_id");
+  
+  if (profile?.organization_id) {
+    quizQuery = quizQuery.eq("organization_id", profile.organization_id);
+  }
+  
+  const { data: quizData } = await quizQuery;
 
-  // Learning: Fetch all completion counts for all users in org
-  const { data: learningData } = await supabase
+  // Learning: Fetch all completion counts for all users
+  let learningQuery = supabase
     .from("profiles")
     .select(`id, full_name, user_lesson_progress(count)`)
-    .eq("organization_id", profile?.organization_id)
     .eq("user_lesson_progress.is_completed", true);
+  
+  if (profile?.organization_id) {
+    learningQuery = learningQuery.eq("organization_id", profile.organization_id);
+  }
+  
+  const { data: learningData } = await learningQuery;
 
   // 2. 🧮 CALCULATION LOGIC (Sum of all / Total count)
   const quizCount = quizData?.length || 0;

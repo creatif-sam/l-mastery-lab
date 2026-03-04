@@ -142,7 +142,12 @@ export default function SettingsPage() {
       profile.country_residence,
       profile.target_language
     ];
-    const completed = fields.filter(field => field && field !== "").length;
+    // Check for both empty strings and null/undefined
+    const completed = fields.filter(field => {
+      if (field === null || field === undefined) return false;
+      if (typeof field === 'string' && field.trim() === '') return false;
+      return true;
+    }).length;
     return Math.round((completed / fields.length) * 100);
   };
 

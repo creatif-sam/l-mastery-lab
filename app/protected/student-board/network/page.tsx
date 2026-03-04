@@ -37,12 +37,20 @@ export default async function NetworkPage() {
     teammates = data || [];
   }
 
-  // 4. Fetch Organization Members
-  const { data: members } = await supabase
-    .from("organization_network")
-    .select("*")
-    .eq("organization_id", myProfile?.organization_id)
-    .order("last_online", { ascending: false });
+  // 4. Fetch Organization Members (from profiles table)
+  // If user has no organization, show all users; otherwise filter by organization
+  let membersQuery = supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, role, xp, level, organization_id, updated_at")
+    .not("id", "eq", user?.id) // Exclude current user
+    .order("updated_at", { ascending: false });
+  
+  // Only filter by organization if the user has one
+  if (myProfile?.organization_id) {
+    membersQuery = membersQuery.eq("organization_id", myProfile.organization_id);
+  }
+  
+  const { data: members } = await membersQuery;
 
   // 5. Calculate Capacity (Min 3 / Max 4 logic)
   const isMyGroupFull = (teammates.length + 1) >= 4;
