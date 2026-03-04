@@ -23,7 +23,7 @@ export default async function StudentDashboard() {
   const { data: { user } } = await supabase.auth.getUser();
 
   // 1. Fetch User Profile & Organization Context
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(`
       full_name, 
@@ -40,16 +40,24 @@ export default async function StudentDashboard() {
     .eq("id", user?.id)
     .single() as any; // Assert as any to fix the 'never' type error during build
 
+  // Debug: Log profile fetch
+  if (profileError) {
+    console.error("Profile fetch error:", profileError);
+  }
+
   // Calculate profile completion percentage
   const calculateProfileCompletion = () => {
-    if (!profile) return 0;
+    if (!profile) {
+      console.warn("Profile is null or undefined");
+      return 0;
+    }
     // Don't count organization_id for completion - it's optional for OAuth users
     const fields = [
-      profile.full_name,
-      profile.avatar_url,
-      profile.country_birth,
-      profile.country_residence,
-      profile.target_language
+      profile?.full_name,
+      profile?.avatar_url,
+      profile?.country_birth,
+      profile?.country_residence,
+      profile?.target_language
     ];
     // Check for both empty strings and null/undefined
     const completed = fields.filter(field => {
@@ -57,7 +65,21 @@ export default async function StudentDashboard() {
       if (typeof field === 'string' && field.trim() === '') return false;
       return true;
     }).length;
-    return Math.round((completed / fields.length) * 100);
+    const percentage = Math.round((completed / fields.length) * 100);
+    // Debug logging
+    console.log('Profile completion debug:', {
+      fields: {
+        full_name: profile?.full_name,
+        avatar_url: profile?.avatar_url,
+        country_birth: profile?.country_birth,
+        country_residence: profile?.country_residence,
+        target_language: profile?.target_language
+      },
+      completed,
+      total: fields.length,
+      percentage
+    });
+    return percentage;
   };
 
   const profileCompletion = calculateProfileCompletion();

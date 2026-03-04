@@ -96,26 +96,9 @@ export function CommunityClient({
     setNewPost(""); setImageUrl(""); setShowImageInput(false);
     toast.success("+1 point earned for posting! 🎉");
 
-    // Notify org members
-    if (currentUser.organization_id) {
-      const { data: orgMembers } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("organization_id", currentUser.organization_id)
-        .neq("id", currentUser.id);
-
-      if (orgMembers && orgMembers.length > 0) {
-        await supabase.from("notifications").insert(
-          orgMembers.map((m: any) => ({
-            user_id: m.id,
-            title: `New post by ${currentUser.full_name}`,
-            message: newPost.trim().substring(0, 80) + (newPost.length > 80 ? "..." : ""),
-            type: "info",
-            link: "/protected/student-board/community",
-          }))
-        );
-      }
-    }
+    // Note: Notifications are now handled automatically by database trigger
+    // See: supabase/migrations/20260304000002_notification_triggers.sql
+    
     setPosting(false);
   };
 
