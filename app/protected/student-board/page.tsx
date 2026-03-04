@@ -9,7 +9,8 @@ import {
   ArrowRight, 
   Award, 
   Users, 
-  Star
+  Star,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -29,11 +30,32 @@ export default async function StudentDashboard() {
       organization_id,
       group_id,
       community_points,
+      avatar_url,
+      country_birth,
+      country_residence,
+      target_language,
       groups(name),
       quiz_attempts(score, created_at)
     `)
     .eq("id", user?.id)
     .single() as any; // Assert as any to fix the 'never' type error during build
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = () => {
+    if (!profile) return 0;
+    const fields = [
+      profile.full_name,
+      profile.avatar_url,
+      profile.organization_id,
+      profile.country_birth,
+      profile.country_residence,
+      profile.target_language
+    ];
+    const completed = fields.filter(field => field && field !== "").length;
+    return Math.round((completed / fields.length) * 100);
+  };
+
+  const profileCompletion = calculateProfileCompletion();
 
   // 2. Fetch lessons completed by user
   const { count: lessonsCompleted } = await supabase
@@ -157,6 +179,39 @@ export default async function StudentDashboard() {
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-24">
           <div className="max-w-6xl mx-auto space-y-8">
             
+            {/* PROFILE COMPLETION BANNER */}
+            {profileCompletion < 80 && (
+              <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl border border-red-400 p-6 shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-black text-white mb-2">
+                      Complete Your Profile ({profileCompletion}%)
+                    </h3>
+                    <p className="text-sm text-red-50 mb-3">
+                      Please complete your profile to at least 80% to unlock all functionalities and access your organization features.
+                    </p>
+                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mb-3">
+                      <div 
+                        className="h-full bg-white rounded-full transition-all"
+                        style={{ width: `${profileCompletion}%` }}
+                      />
+                    </div>
+                    <Link 
+                      href="/protected/student-board/settings"
+                      className="inline-flex items-center gap-2 bg-white text-red-600 font-bold px-4 py-2 rounded-lg hover:bg-red-50 transition-all text-sm"
+                    >
+                      <User className="w-4 h-4" />
+                      Complete Profile Now
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 1. WELCOME SECTION */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>

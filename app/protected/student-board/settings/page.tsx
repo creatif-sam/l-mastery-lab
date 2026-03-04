@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { User, Mail, Shield, LogOut, Save, Loader2, ArrowLeft, Camera, MapPin, Home, Building2 } from "lucide-react";
+import { User, Mail, Shield, LogOut, Save, Loader2, ArrowLeft, Camera, MapPin, Home, Building2, BookOpen, AlertCircle } from "lucide-react";
 import { Sidebar } from "../components/sidebar";
 import { Header } from "../components/header";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 
 type Organization = {
   id: string;
@@ -28,7 +29,8 @@ export default function SettingsPage() {
     avatar_url: "",
     organization_id: null as string | null,
     country_birth: "",
-    country_residence: ""
+    country_residence: "",
+    target_language: null as string | null
   });
   const [organizations, setOrganizations] = useState<Organization[]>([]);
 
@@ -38,7 +40,7 @@ export default function SettingsPage() {
       if (user) {
         const { data } = await supabase
           .from("profiles")
-          .select("id, full_name, avatar_url, organization_id, country_birth, country_residence")
+          .select("id, full_name, avatar_url, organization_id, country_birth, country_residence, target_language")
           .eq("id", user.id)
           .single();
         setProfile({ 
@@ -48,7 +50,8 @@ export default function SettingsPage() {
           avatar_url: data?.avatar_url || "",
           organization_id: data?.organization_id || null,
           country_birth: data?.country_birth || "",
-          country_residence: data?.country_residence || ""
+          country_residence: data?.country_residence || "",
+          target_language: data?.target_language || null
         });
       }
       setLoading(false);
@@ -97,9 +100,10 @@ export default function SettingsPage() {
       if (updateError) throw updateError;
 
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+      toast.success("Avatar uploaded successfully!");
       router.refresh();
     } catch (error: any) {
-      alert("Error uploading avatar: " + error.message);
+      toast.error("Error uploading avatar: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -114,13 +118,35 @@ export default function SettingsPage() {
         full_name: profile.full_name,
         organization_id: profile.organization_id,
         country_birth: profile.country_birth,
-        country_residence: profile.country_residence
+        country_residence: profile.country_residence,
+        target_language: profile.target_language
       })
       .eq("id", profile.id);
 
-    if (!error) router.refresh();
+    if (error) {
+      toast.error("Failed to update profile");
+    } else {
+      toast.success("Profile updated successfully!");
+      router.refresh();
+    }
     setUpdating(false);
   };
+
+  // Calculate profile completion percentage
+  const calculateCompletion = () => {
+    const fields = [
+      profile.full_name,
+      profile.avatar_url,
+      profile.organization_id,
+      profile.country_birth,
+      profile.country_residence,
+      profile.target_language
+    ];
+    const completed = fields.filter(field => field && field !== "").length;
+    return Math.round((completed / fields.length) * 100);
+  };
+
+  const completionPercent = calculateCompletion();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -176,6 +202,42 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Profile Completion Progress */}
+            <div className={`rounded-2xl border p-6 ${
+              completionPercent >= 80 
+                ? "bg-emerald-500/5 border-emerald-500/20" 
+                : "bg-amber-500/5 border-amber-500/20"
+            }`}>
+              <div className="flex items-start gap-3">
+                <AlertCircle className={`w-5 h-5 mt-0.5 ${
+                  completionPercent >= 80 ? "text-emerald-600" : "text-amber-600"
+                }`} />
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+                    Profile Completion: {completionPercent}%
+                  </h3>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
+                    <div 
+                      className={`h-full rounded-full transition-all ${
+                        completionPercent >= 80 ? "bg-emerald-500" : "bg-amber-500"
+                      }`}
+                      style={{ width: `${completionPercent}%` }}
+                    />
+                  </div>
+                  {completionPercent < 80 && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Complete your profile to 80% to unlock all functionalities and access your organization features.
+                    </p>
+                  )}
+                  {completionPercent >= 80 && (
+                    <p className="text-xs text-emerald-600">
+                      ✓ Your profile is complete! You have full access to all features.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <form onSubmit={handleUpdate} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 p-6 md:p-8 shadow-sm space-y-8">
               <div className="space-y-6">
                 <div className="space-y-2">
@@ -193,6 +255,28 @@ export default function SettingsPage() {
 
                 <div className="space-y-2 opacity-60">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Email (Account ID)</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input type="email" value={profile.email} disabled className="w-full bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-4 text-sm cursor-not-allowed" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Target Language</label>
+                  <div className="relative">
+                    <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <select
+                      value={profile.target_language || ""}
+                      onChange={(e) => setProfile({...profile, target_language: e.target.value || null})}
+                      className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-violet-500/20 outline-none transition-all font-bold appearance-none cursor-pointer"
+                    >
+                      <option value="">Select your target language</option>
+                      <option value="french">🇫🇷 French</option>
+                      <option value="english">🇬🇧 English</option>
+                      <option value="both">🌐 Both (French & English)</option>
+                    </select>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Organization</label>
@@ -238,11 +322,6 @@ export default function SettingsPage() {
                       placeholder="e.g. France, Belgium, Morocco..."
                       className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-violet-500/20 outline-none transition-all font-bold"
                     />
-                  </div>
-                </div>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="email" value={profile.email} disabled className="w-full bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-4 text-sm cursor-not-allowed" />
                   </div>
                 </div>
               </div>
