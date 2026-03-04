@@ -132,12 +132,12 @@ export default function SettingsPage() {
     setUpdating(false);
   };
 
-  // Calculate profile completion percentage
+  // Calculate profile completion percentage (excluding organization_id)
   const calculateCompletion = () => {
+    // Don't count organization_id for completion - it's optional for OAuth users
     const fields = [
       profile.full_name,
       profile.avatar_url,
-      profile.organization_id,
       profile.country_birth,
       profile.country_residence,
       profile.target_language

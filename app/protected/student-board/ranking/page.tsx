@@ -32,10 +32,10 @@ export default async function OrganizationRankingPage() {
 
   // 1. FETCH DATA FOR CALCULATION
   // Quiz: Fetch all top scores from the leaderboard view
-  // If user has no organization, show all users; otherwise filter by organization
+  // Show organization-specific if user has org, otherwise show global rankings
   let quizQuery = supabase
     .from("org_leaderboard")
-    .select("top_score, full_name, profile_id");
+    .select("top_score, full_name, profile_id, organization_id");
   
   if (profile?.organization_id) {
     quizQuery = quizQuery.eq("organization_id", profile.organization_id);
@@ -43,10 +43,11 @@ export default async function OrganizationRankingPage() {
   
   const { data: quizData } = await quizQuery;
 
-  // Learning: Fetch all completion counts for all users
+  // Learning: Fetch all completion counts for users
+  // Show organization-specific if user has org, otherwise show global rankings
   let learningQuery = supabase
     .from("profiles")
-    .select(`id, full_name, user_lesson_progress(count)`)
+    .select(`id, full_name, organization_id, user_lesson_progress(count)`)
     .eq("user_lesson_progress.is_completed", true);
   
   if (profile?.organization_id) {
@@ -102,9 +103,11 @@ export default async function OrganizationRankingPage() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-                    {org?.name || "Mastery Lab Org"}
+                    {org?.name || "Global Rankings"}
                   </h1>
-                  <p className="text-xs font-bold text-violet-600 uppercase tracking-widest mt-1">L-Mastery Institutional Benchmarks</p>
+                  <p className="text-xs font-bold text-violet-600 uppercase tracking-widest mt-1">
+                    {profile?.organization_id ? "L-Mastery Institutional Benchmarks" : "L-Mastery Global Leaderboard"}
+                  </p>
                 </div>
               </div>
             </div>

@@ -43,10 +43,10 @@ export default async function StudentDashboard() {
   // Calculate profile completion percentage
   const calculateProfileCompletion = () => {
     if (!profile) return 0;
+    // Don't count organization_id for completion - it's optional for OAuth users
     const fields = [
       profile.full_name,
       profile.avatar_url,
-      profile.organization_id,
       profile.country_birth,
       profile.country_residence,
       profile.target_language
@@ -133,34 +133,43 @@ export default async function StudentDashboard() {
     topGroups = groupScores.sort((a, b) => b.avgScore - a.avgScore).slice(0, 3);
   }
 
-  // 3. Fetch Next Upcoming Organization-Wide Meeting
+  // 3. Fetch Next Upcoming Meetings (organization or group-based)
   let nextMeeting = null;
   let allOrgMeetings: any[] = [];
+  const now = new Date().toISOString();
+  
+  // Build meeting query based on user's organization or group
+  let meetingQuery = supabase
+    .from("meetings")
+    .select("*")
+    .gte("start_time", now)
+    .order("start_time", { ascending: true });
+  
   if (profile?.organization_id) {
-    const now = new Date().toISOString();
-    // next single meeting for the card
-    const { data: meetingData } = await supabase
-      .from("meetings")
-      .select("*")
-      .eq("organization_id", profile.organization_id)
-      .gte("start_time", now)
-      .order("start_time", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    nextMeeting = meetingData;
-
-    // all meetings for the next 3 months for the calendar
-    const threeMonthsOut = new Date();
-    threeMonthsOut.setMonth(threeMonthsOut.getMonth() + 3);
-    const { data: calMeetings } = await supabase
-      .from("meetings")
-      .select("id, title, platform, meeting_link, start_time")
-      .eq("organization_id", profile.organization_id)
-      .gte("start_time", now)
-      .lte("start_time", threeMonthsOut.toISOString())
-      .order("start_time", { ascending: true });
-    allOrgMeetings = calMeetings ?? [];
+    meetingQuery = meetingQuery.eq("organization_id", profile.organization_id);
   }
+  
+  // Fetch next single meeting for the card
+  const { data: meetingData } = await meetingQuery.limit(1).maybeSingle();
+  nextMeeting = meetingData;
+
+  // Fetch all meetings for the next 3 months for the calendar
+  const threeMonthsOut = new Date();
+  threeMonthsOut.setMonth(threeMonthsOut.getMonth() + 3);
+  
+  let calendarQuery = supabase
+    .from("meetings")
+    .select("id, title, platform, meeting_link, start_time")
+    .gte("start_time", now)
+    .lte("start_time", threeMonthsOut.toISOString())
+    .order("start_time", { ascending: true });
+  
+  if (profile?.organization_id) {
+    calendarQuery = calendarQuery.eq("organization_id", profile.organization_id);
+  }
+  
+  const { data: calMeetings } = await calendarQuery;
+  allOrgMeetings = calMeetings ?? [];
 
   // 4. Fetch Bilingual Phrase of the Day
   const { data: phrases } = await supabase
@@ -185,7 +194,7 @@ export default async function StudentDashboard() {
           <div className="max-w-6xl mx-auto space-y-8">
             
             {/* PROFILE COMPLETION BANNER */}
-            {profileCompletion < 80 && (
+            {profileCompletion < 100 && (
               <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl border border-red-400 p-6 shadow-lg">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -196,7 +205,7 @@ export default async function StudentDashboard() {
                       Complete Your Profile ({profileCompletion}%)
                     </h3>
                     <p className="text-sm text-red-50 mb-3">
-                      Please complete your profile to at least 80% to unlock all functionalities and access your organization features.
+                      Please complete your profile to unlock all functionalities and get the best experience.
                     </p>
                     <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mb-3">
                       <div 
