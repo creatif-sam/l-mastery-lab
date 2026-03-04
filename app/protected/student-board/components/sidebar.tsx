@@ -14,7 +14,8 @@ import {
   Bell,
   FileText,
   MessageSquare,
-  Mail
+  Mail,
+  MoreHorizontal
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,6 +30,7 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState<boolean | null>(null);
   const [hasUnread, setHasUnread] = useState(false); // 🔔 Notification State
   const [sideOpen, setSideOpen] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   useEffect(() => {
     const savedState = localStorage.getItem("sidebar-collapsed");
@@ -82,10 +84,10 @@ export function Sidebar() {
     { icon: Bell, label: "Alerts", href: "/protected/student-board/notifications", active: pathname === "/protected/student-board/notifications" },
   ];
 
-  // Mobile: 5 bottom tabs
-  const bottomNavItems = [menuItems[0], menuItems[1], menuItems[2], menuItems[3], menuItems[9]];
-  // Mobile: right side dock
-  const sideDockItems = [menuItems[7], menuItems[5], menuItems[4], menuItems[6], menuItems[8]];
+  // Mobile: 4 bottom tabs + More button
+  const bottomNavItems = [menuItems[0], menuItems[1], menuItems[2], menuItems[3]];
+  // Mobile: Items shown in More menu
+  const moreMenuItems = [menuItems[4], menuItems[5], menuItems[6], menuItems[7], menuItems[8], menuItems[9]];
 
   return (
     <>
@@ -150,7 +152,7 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* --- MOBILE BOTTOM NAV (5 tabs) --- */}
+      {/* --- MOBILE BOTTOM NAV (4 tabs + More) --- */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-1 pb-safe">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           {bottomNavItems.map((item) => (
@@ -173,59 +175,102 @@ export function Sidebar() {
               </span>
             </Link>
           ))}
+          
+          {/* More Button */}
+          <button
+            onClick={() => setShowMoreMenu(true)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 flex-1 transition-all h-full relative",
+              showMoreMenu ? "text-violet-600" : "text-slate-400"
+            )}
+          >
+            <div className={cn(
+              "p-1.5 rounded-xl transition-colors relative",
+              showMoreMenu ? "bg-violet-500/10" : "bg-transparent"
+            )}>
+              <MoreHorizontal className="w-5 h-5" />
+              {hasUnread && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-950" />
+              )}
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-tight text-center leading-none">
+              More
+            </span>
+          </button>
         </div>
       </nav>
 
-      {/* --- MOBILE RIGHT SIDE DOCK --- */}
-      <div className="md:hidden fixed right-0 top-1/2 -translate-y-1/2 z-[95] flex items-center">
-        {/* Toggle Tab */}
-        <button
-          onClick={() => setSideOpen(!sideOpen)}
-          className={cn(
-            "w-7 h-14 rounded-l-2xl flex items-center justify-center shadow-lg transition-all duration-300",
-            sideOpen
-              ? "bg-violet-600 text-white"
-              : "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-violet-500 border border-r-0 border-slate-200 dark:border-white/10"
-          )}
-        >
-          {sideOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
-
-        {/* Dock Panel */}
-        <div
-          className={cn(
-            "flex flex-col gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-r-0 border-slate-200 dark:border-white/10 shadow-2xl shadow-black/10 transition-all duration-300 ease-in-out overflow-hidden rounded-l-2xl",
-            sideOpen ? "p-1.5 opacity-100 max-w-[200px]" : "max-w-0 opacity-0 p-0 border-0"
-          )}
-        >
-          {sideDockItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={() => setSideOpen(false)}
-              className={cn(
-                "relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all whitespace-nowrap",
-                item.active
-                  ? "bg-violet-500 text-white shadow-md shadow-violet-500/25"
-                  : "text-slate-500 hover:bg-violet-50 dark:hover:bg-white/5 hover:text-violet-600 dark:hover:text-white"
-              )}
-            >
-              <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-              <span className="text-xs font-bold">{item.label}</span>
-              {item.badge && (
-                <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
-              )}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Side Dock Backdrop */}
-      {sideOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-[94] bg-black/20"
-          onClick={() => setSideOpen(false)}
-        />
+      {/* --- MOBILE MORE MENU MODAL --- */}
+      {showMoreMenu && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowMoreMenu(false)}
+          />
+          
+          {/* More Menu Panel */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-[120] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[70vh] overflow-auto">
+            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-6 py-4 rounded-t-3xl z-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">More Options</h3>
+                <button
+                  onClick={() => setShowMoreMenu(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  <ChevronRight size={16} className="rotate-90" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 space-y-2 pb-24">
+              {moreMenuItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setShowMoreMenu(false)}
+                  className={cn(
+                    "relative flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all",
+                    item.active
+                      ? "bg-violet-500 text-white shadow-lg shadow-violet-500/25"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-white/5 hover:text-violet-600 dark:hover:text-white active:scale-95"
+                  )}
+                >
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                    item.active
+                      ? "bg-white/20"
+                      : "bg-slate-100 dark:bg-slate-800"
+                  )}>
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-bold block">{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0" />
+                  )}
+                </Link>
+              ))}
+              
+              {/* Logout Button */}
+              <button
+                onClick={() => {
+                  setShowMoreMenu(false);
+                  handleLogout();
+                }}
+                className="w-full relative flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 active:scale-95"
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-100 dark:bg-red-950/30">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-bold block">Logout</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </>
   );
