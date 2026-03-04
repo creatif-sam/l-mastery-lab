@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import {
   User, Mail, Shield, Building2, Camera, Loader2, Save, Calendar,
-  Video, Link2, Trash2, Plus, Send, MessageSquare, Clock, Globe,
+  Video, Link2, Trash2, Plus, Clock, Globe,
   MapPin, Star, Zap, Trophy, Users,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -17,8 +17,7 @@ interface Profile {
   role: string;
   avatar_url: string | null;
   organization_id: string | null;
-  group_id: string | null;
-  created_at: string;
+  created_at?: string;
   target_language: string | null;
   country_birth: string | null;
   country_residence: string | null;
@@ -44,21 +43,30 @@ interface Meeting {
 export function TutorSettingsClient({
   profile,
   org,
-  groupName,
   upcomingMeetings: initialMeetings,
 }: {
   profile: Profile;
   org: OrgInfo | null;
-  groupName: string | null;
   upcomingMeetings: Meeting[];
 }) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Log to see what org data we received from the server
+  console.log("[TutorSettingsClient] Received org:", org);
+  console.log("[TutorSettingsClient] Profile organization_id:", profile.organization_id);
+
   // ── Editable profile state ─────────────────────────────────────────────────
   const [fullName, setFullName]           = useState(profile.full_name ?? "");
   const [avatarUrl, setAvatarUrl]         = useState(profile.avatar_url ?? "");
-  const [localAvatar, setLocalAvatar]     = useState(profile.avatar_url ?? "");
+  const [localAvatar, setLocalAvatar]     = useState(() => {
+    if (!profile.avatar_url) return "";
+    // If it's already a full URL, use it; otherwise construct from avatars bucket
+    if (profile.avatar_url.startsWith('http')) return profile.avatar_url;
+    const supabase = createClient();
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(profile.avatar_url);
+    return publicUrl;
+  });
   const [targetLang, setTargetLang]       = useState(profile.target_language ?? "");
   const [countryBirth, setCountryBirth]   = useState(profile.country_birth ?? "");
   const [countryRes, setCountryRes]       = useState(profile.country_residence ?? "");
@@ -71,11 +79,6 @@ export function TutorSettingsClient({
   const [meetingDate, setMeetingDate]     = useState("");
   const [meetingLink, setMeetingLink]     = useState("");
   const [savingMeeting, setSavingMeeting] = useState(false);
-
-  // ── Contact Admin state ────────────────────────────────────────────────────
-  const [contactSubject, setContactSubject] = useState("");
-  const [contactMessage, setContactMessage] = useState("");
-  const [sendingContact, setSendingContact] = useState(false);
 
   const initials = fullName
     ? fullName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
@@ -170,33 +173,6 @@ export function TutorSettingsClient({
     toast.success("Meeting removed");
   };
 
-  const handleContactAdmin = async () => {
-    if (!contactSubject.trim() || !contactMessage.trim()) {
-      toast.error("Please fill in both subject and message");
-      return;
-    }
-    setSendingContact(true);
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name:     profile.full_name,
-          email:    profile.email,
-          category: "tutor-admin",
-          subject:  contactSubject.trim(),
-          message:  contactMessage.trim(),
-        }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success("Message sent to admin!");
-      setContactSubject(""); setContactMessage("");
-    } catch {
-      toast.error("Failed to send message. Please try again.");
-    }
-    setSendingContact(false);
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-10">
@@ -227,7 +203,7 @@ export function TutorSettingsClient({
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white">{profile.full_name}</h2>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">{fullName || "Tutor"}</h2>
             <span className="inline-block mt-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 capitalize">
               {profile.role}
             </span>
@@ -238,7 +214,6 @@ export function TutorSettingsClient({
                   : <Building2 size={11} />
                 }
                 {org.name}
-                {groupName && <span className="text-slate-400">· {groupName}</span>}
               </p>
             )}
           </div>
@@ -357,7 +332,7 @@ export function TutorSettingsClient({
           {[
             { icon: Mail,     label: "Email",     value: profile.email },
             { icon: Shield,   label: "Role",      value: profile.role,  className: "capitalize" },
-            { icon: Calendar, label: "Joined",    value: format(new Date(profile.created_at), "dd MMM yyyy") },
+            { icon: Calendar, label: "Joined",    value: profile.created_at ? format(new Date(profile.created_at), "dd MMM yyyy") : "—" },
             { icon: Globe,    label: "Language",  value: langLabel(targetLang) || "—" },
             { icon: MapPin,   label: "Born in",   value: countryBirth  || "—" },
             { icon: MapPin,   label: "Lives in",  value: countryRes    || "—" },
@@ -372,17 +347,29 @@ export function TutorSettingsClient({
           ))}
         </div>
 
-        {/* Organisation & Group — locked */}
+        {/* Organisation — locked */}
         <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-500/20 rounded-xl">
-          {org?.logo_url
-            ? <img src={org.logo_url} alt={org.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-emerald-200 dark:border-emerald-500/30" />
-            : <Building2 size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-          }
+          {org?.logo_url ? (
+            <img 
+              src={org.logo_url.startsWith('http') ? org.logo_url : supabase.storage.from("org-logos").getPublicUrl(org.logo_url).data.publicUrl} 
+              alt={org.name} 
+              className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-emerald-200 dark:border-emerald-500/30" 
+            />
+          ) : (
+            <Building2 size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+          )}
           <div className="flex-1">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Organisation · Group</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Organisation</p>
             <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-              {org?.name ?? "Not assigned"}
-              {groupName && <span className="text-slate-400 font-normal"> · {groupName}</span>}
+              {org ? (
+                org.name
+              ) : (
+                profile.organization_id ? (
+                  <span className="text-amber-600 dark:text-amber-400">Loading organization...</span>
+                ) : (
+                  "Not assigned"
+                )
+              )}
             </p>
             <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/60 mt-0.5">
               Managed by your admin — cannot be changed here.
@@ -483,48 +470,6 @@ export function TutorSettingsClient({
             </div>
           </div>
         )}
-      </div>
-
-      {/* ── CONTACT ADMIN ───────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-200/60 dark:border-amber-500/20 p-6 space-y-5">
-        <div>
-          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <MessageSquare size={16} className="text-amber-500" /> Contact Admin
-          </h3>
-          <p className="text-xs text-slate-500 mt-1">
-            Have a question or issue? Send a message directly to your organisation admin.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Subject</label>
-            <input
-              value={contactSubject}
-              onChange={(e) => setContactSubject(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-              placeholder="e.g. Question about student roster"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Message</label>
-            <textarea
-              value={contactMessage}
-              onChange={(e) => setContactMessage(e.target.value)}
-              rows={4}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 resize-none"
-              placeholder="Describe your question or issue…"
-            />
-          </div>
-          <button
-            onClick={handleContactAdmin}
-            disabled={sendingContact}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
-          >
-            {sendingContact ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-            {sendingContact ? "Sending…" : "Send to Admin"}
-          </button>
-        </div>
       </div>
 
     </div>

@@ -5,25 +5,54 @@ import { TutorSidebar } from "../components/structure/sidebar";
 import { TutorHeader } from "../components/structure/header";
 import { TutorSettingsClient } from "./settings-client";
 
+// Force dynamic rendering and no caching to ensure fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function TutorSettingsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return redirect("/auth/login");
 
-  // 1. Role check using a minimal, safe query
-  const { data: roleRow } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (!roleRow || roleRow.role !== "tutor") return redirect("/");
+  console.log("[TutorSettings] Fetching profile for user:", user.id);
 
-  // 2. Full profile — all editable and displayable columns
-  const { data: profile } = await supabase
+  // Try admin client first
+  const adminDb = createAdminClient();
+  console.log("[TutorSettings] Admin client created successfully");
+  
+  let { data: profile, error: profileError } = await adminDb
     .from("profiles")
-    .select("id, full_name, role, avatar_url, organization_id, group_id, created_at, target_language, country_birth, country_residence, xp, level, community_points")
+    .select("id, full_name, role, avatar_url, organization_id, target_language, country_birth, country_residence, xp, level, community_points")
     .eq("id", user.id)
     .single() as any;
+
+  if (profileError) {
+    console.error("[TutorSettings] Admin client profile fetch error:", JSON.stringify(profileError, null, 2));
+    console.log("[TutorSettings] Trying fallback with regular client...");
+    
+    // Fallback to regular client
+    const fallbackResult = await supabase
+      .from("profiles")
+      .select("id, full_name, role, avatar_url, organization_id, target_language, country_birth, country_residence, xp, level, community_points")
+      .eq("id", user.id)
+      .single();
+    
+    if (fallbackResult.error) {
+      console.error("[TutorSettings] Regular client also failed:", JSON.stringify(fallbackResult.error, null, 2));
+    } else {
+      console.log("[TutorSettings] Regular client succeeded!");
+      profile = fallbackResult.data;
+      profileError = null;
+    }
+  }
+
+  console.log("[TutorSettings] Final profile data:", profile);
+
+  // Role check
+  if (!profile || profile.role !== "tutor") {
+    console.log("[TutorSettings] Not a tutor, redirecting. Role:", profile?.role);
+    return redirect("/");
+  }
 
   const safeProfile = {
     id:               profile?.id               ?? user.id,
@@ -31,8 +60,6 @@ export default async function TutorSettingsPage() {
     role:             profile?.role             ?? "tutor",
     avatar_url:       profile?.avatar_url       ?? null,
     organization_id:  profile?.organization_id  ?? null,
-    group_id:         profile?.group_id         ?? null,
-    created_at:       profile?.created_at       ?? new Date().toISOString(),
     email:            user.email                ?? "",
     target_language:  profile?.target_language  ?? null,
     country_birth:    profile?.country_birth    ?? null,
@@ -42,17 +69,12 @@ export default async function TutorSettingsPage() {
     community_points: profile?.community_points ?? 0,
   };
 
-  // Use service-role client for org/group lookups so that row-level security
-  // on those tables never silently blocks these server-side reads.
-  const adminDb = createAdminClient();
-
-  // Fetch org, group, and meetings in parallel
-  const [orgResult, groupResult, meetingsResult] = await Promise.all([
+  // Fetch org and meetings in parallel
+  console.log("[TutorSettings] User organization_id:", safeProfile.organization_id);
+  
+  const [orgResult, meetingsResult] = await Promise.all([
     safeProfile.organization_id
       ? adminDb.from("organizations").select("id, name, logo_url").eq("id", safeProfile.organization_id).single()
-      : Promise.resolve({ data: null, error: null }),
-    safeProfile.group_id
-      ? adminDb.from("groups").select("id, name").eq("id", safeProfile.group_id).single()
       : Promise.resolve({ data: null, error: null }),
     safeProfile.organization_id
       ? supabase
@@ -65,15 +87,29 @@ export default async function TutorSettingsPage() {
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (orgResult.error) {
-    console.error("[TutorSettings] org fetch error:", orgResult.error.message);
-  }
-  if (groupResult.error) {
-    console.error("[TutorSettings] group fetch error:", groupResult.error.message);
-  }
+  let org: { id: string; name: string; logo_url: string | null } | null = null;
 
-  const org = orgResult.data as { id: string; name: string; logo_url: string | null } | null;
-  const group = groupResult.data as { id: string; name: string } | null;
+  if (orgResult.error) {
+    console.error("[TutorSettings] org fetch error (admin client):", orgResult.error);
+    // Try fallback with regular client
+    if (safeProfile.organization_id) {
+      console.log("[TutorSettings] Attempting fallback org fetch with regular client");
+      const fallbackOrg = await supabase
+        .from("organizations")
+        .select("id, name, logo_url")
+        .eq("id", safeProfile.organization_id)
+        .single();
+      if (fallbackOrg.error) {
+        console.error("[TutorSettings] Fallback org fetch also failed:", fallbackOrg.error);
+      } else {
+        console.log("[TutorSettings] Fallback org fetched successfully:", fallbackOrg.data);
+        org = fallbackOrg.data as any;
+      }
+    }
+  } else {
+    console.log("[TutorSettings] org fetched:", orgResult.data);
+    org = orgResult.data as { id: string; name: string; logo_url: string | null } | null;
+  }
 
   // Keep only meetings this tutor created
   const myMeetings = ((meetingsResult.data ?? []) as any[]).filter(
@@ -89,7 +125,6 @@ export default async function TutorSettingsPage() {
           <TutorSettingsClient
             profile={safeProfile}
             org={org}
-            groupName={group?.name ?? null}
             upcomingMeetings={myMeetings}
           />
         </main>

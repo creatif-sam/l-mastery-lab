@@ -9,15 +9,22 @@ import { createClient } from "@supabase/supabase-js";
  * blocked by row-level security policies written for end-users.
  */
 export function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        // Prevent the admin client from persisting any session to cookies
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!url || !key) {
+    console.error("[Admin Client] Missing environment variables:", {
+      hasUrl: !!url,
+      hasKey: !!key
+    });
+    throw new Error("Missing Supabase environment variables for admin client");
+  }
+  
+  return createClient(url, key, {
+    auth: {
+      // Prevent the admin client from persisting any session to cookies
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
