@@ -9,10 +9,12 @@ import {
   BookOpen, 
   Target, 
   BarChart3,
-  Calculator
+  Calculator,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
 
 export default async function OrganizationRankingPage() {
   const supabase = await createClient();
@@ -20,7 +22,7 @@ export default async function OrganizationRankingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("organization_id")
+    .select("organization_id, full_name")
     .eq("id", user?.id)
     .single();
 
@@ -47,12 +49,14 @@ export default async function OrganizationRankingPage() {
   // Show organization-specific if user has org, otherwise show global rankings
   let learningQuery = supabase
     .from("profiles")
-    .select(`id, full_name, organization_id, user_lesson_progress(count)`)
-    .eq("user_lesson_progress.is_completed", true);
+    .select(`id, full_name, organization_id, user_lesson_progress!inner(lesson_id, completed)`);
   
   if (profile?.organization_id) {
     learningQuery = learningQuery.eq("organization_id", profile.organization_id);
   }
+  
+  // Only count completed lessons
+  learningQuery = learningQuery.eq("user_lesson_progress.completed", true);
   
   const { data: learningData } = await learningQuery;
 
@@ -61,8 +65,19 @@ export default async function OrganizationRankingPage() {
   const totalQuizPoints = quizData?.reduce((sum, p) => sum + (p.top_score || 0), 0) || 0;
   const avgQuizScore = quizCount > 0 ? (totalQuizPoints / quizCount).toFixed(1) : "0.0";
 
+  // Group learning data by user and count completed lessons
   const learningCount = learningData?.length || 0;
-  const totalModulesCompleted = learningData?.reduce((sum, p) => sum + (p.user_lesson_progress?.[0]?.count || 0), 0) || 0;
+  const userLessonsMap = new Map<string, number>();
+  
+  learningData?.forEach((record: any) => {
+    const userId = record.id;
+    const lessonCount = Array.isArray(record.user_lesson_progress) 
+      ? record.user_lesson_progress.length 
+      : 0;
+    userLessonsMap.set(userId, lessonCount);
+  });
+  
+  const totalModulesCompleted = Array.from(userLessonsMap.values()).reduce((sum, count) => sum + count, 0);
   const avgModules = learningCount > 0 ? (totalModulesCompleted / learningCount).toFixed(1) : "0.0";
 
   // 3. FORMAT RANKINGS (Sort Top 10)
@@ -74,8 +89,9 @@ export default async function OrganizationRankingPage() {
     ?.map((p: any) => ({
       id: p.id,
       full_name: p.full_name,
-      completed_count: p.user_lesson_progress?.[0]?.count || 0
+      completed_count: Array.isArray(p.user_lesson_progress) ? p.user_lesson_progress.length : 0
     }))
+    .filter((p: any) => p.completed_count > 0) // Only show users with at least 1 completed lesson
     .sort((a, b) => b.completed_count - a.completed_count)
     .slice(0, 10) || [];
 
@@ -111,6 +127,32 @@ export default async function OrganizationRankingPage() {
                 </div>
               </div>
             </div>
+
+            {/* NOTICE FOR USERS WITHOUT ORGANIZATION */}
+            {!profile?.organization_id && (
+              <div className="bg-gradient-to-r from-blue-500 to-violet-600 rounded-2xl border border-blue-400 p-6 shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-black text-white mb-2">
+                      Join an Organization to See Your Teammates
+                    </h3>
+                    <p className="text-sm text-blue-50 mb-3">
+                      You're currently viewing global rankings. To see how you compare with your classmates and organization members, please complete your profile and join an organization.
+                    </p>
+                    <Link 
+                      href="/protected/student-board/settings"
+                      className="inline-flex items-center gap-2 bg-white text-violet-600 font-bold px-4 py-2 rounded-lg hover:bg-blue-50 transition-all text-sm"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      Complete Profile
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               

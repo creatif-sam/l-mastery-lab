@@ -31,26 +31,39 @@ export function Sidebar() {
   const [hasUnread, setHasUnread] = useState(false); // 🔔 Notification State
   const [sideOpen, setSideOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [newPostsCount, setNewPostsCount] = useState(0); // 🔔 Community Posts Counter
 
   useEffect(() => {
     const savedState = localStorage.getItem("sidebar-collapsed");
     setIsCollapsed(savedState === "true");
 
-    // Optional: Check for unread messages on mount
-    const checkUnread = async () => {
+    // Check for unread messages and new community posts
+    const checkNotifications = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      const { count } = await supabase
+      // Check unread messages
+      const { count: unreadCount } = await supabase
         .from("messages")
         .select("*", { count: 'exact', head: true })
         .eq("receiver_id", user.id)
         .eq("is_read", false);
       
-      setHasUnread(!!count && count > 0);
+      setHasUnread(!!unreadCount && unreadCount > 0);
+
+      // Check new community posts (last 24 hours)
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      
+      const { count: postsCount } = await supabase
+        .from("community_posts")
+        .select("*", { count: 'exact', head: true })
+        .gte("created_at", oneDayAgo.toISOString());
+      
+      setNewPostsCount(postsCount || 0);
     };
     
-    checkUnread();
+    checkNotifications();
   }, [supabase]);
 
   const toggleSidebar = () => {
@@ -75,18 +88,18 @@ export function Sidebar() {
     { icon: LayoutDashboard, label: "Board", href: "/protected/student-board", active: pathname === "/protected/student-board" },
     { icon: BookOpen, label: "Lessons", href: "/protected/student-board/lessons", active: pathname === "/protected/student-board/lessons" },
     { icon: HelpCircle, label: "Quiz", href: "/protected/student-board/quiz", active: pathname === "/protected/student-board/quiz" },
+    { icon: MessageSquare, label: "Community", href: "/protected/student-board/community", active: pathname.startsWith("/protected/student-board/community"), badge: newPostsCount > 0, badgeCount: newPostsCount },
     { icon: Trophy, label: "Arena", href: "/protected/student-board/ranking", active: pathname === "/protected/student-board/ranking" },
     { icon: Users, label: "Network", href: "/protected/student-board/network", active: pathname === "/protected/student-board/network" },
-    { icon: MessageSquare, label: "Community", href: "/protected/student-board/community", active: pathname.startsWith("/protected/student-board/community") },
     { icon: FileText, label: "Blog", href: "/protected/student-board/blog", active: pathname.startsWith("/protected/student-board/blog") },
     { icon: Mail, label: "Messages", href: "/protected/student-board/messages", active: pathname.startsWith("/protected/student-board/messages") },
     { icon: Inbox, label: "Inbox", href: "/protected/student-board/inbox", active: pathname === "/protected/student-board/inbox", badge: hasUnread },
     { icon: Bell, label: "Alerts", href: "/protected/student-board/notifications", active: pathname === "/protected/student-board/notifications" },
   ];
 
-  // Mobile: 4 bottom tabs + More button
+  // Mobile: 4 bottom tabs + More button (Board, Lessons, Quiz, Community)
   const bottomNavItems = [menuItems[0], menuItems[1], menuItems[2], menuItems[3]];
-  // Mobile: Items shown in More menu
+  // Mobile: Items shown in More menu (Arena, Network, Blog, Messages, Inbox, Alerts)
   const moreMenuItems = [menuItems[4], menuItems[5], menuItems[6], menuItems[7], menuItems[8], menuItems[9]];
 
   return (
@@ -129,11 +142,26 @@ export function Sidebar() {
             >
               <div className="relative">
                 <item.icon className={cn("flex-shrink-0", isCollapsed ? "w-6 h-6" : "w-5 h-5")} />
-                {item.badge && (
+                {item.badge && !item.badgeCount && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
                 )}
+                {item.badgeCount && item.badgeCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-bold text-white px-1">
+                    {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                  </span>
+                )}
               </div>
-              {!isCollapsed && <span className="text-sm font-bold truncate animate-in fade-in">{item.label}</span>}
+              {!isCollapsed && (
+                <div className="flex items-center justify-between flex-1">
+                  <span className="text-sm font-bold truncate animate-in fade-in">{item.label}</span>
+                  {item.badgeCount && item.badgeCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                      {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                    </span>
+                  )}
+                </div>
+              )}
+              {!isCollapsed && !item.badgeCount && <span className="text-sm font-bold truncate animate-in fade-in">{item.label}</span>}
             </Link>
           ))}
         </div>
@@ -169,6 +197,14 @@ export function Sidebar() {
                 item.active ? "bg-violet-500/10" : "bg-transparent"
               )}>
                 <item.icon className="w-5 h-5" />
+                {item.badgeCount && item.badgeCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-500 rounded-full border border-white dark:border-slate-950 flex items-center justify-center text-[8px] font-bold text-white px-1">
+                    {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                  </span>
+                )}
+                {item.badge && !item.badgeCount && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-950" />
+                )}
               </div>
               <span className="text-[9px] font-black uppercase tracking-tight text-center leading-none">
                 {item.label}
@@ -237,7 +273,7 @@ export function Sidebar() {
                   )}
                 >
                   <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                    "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative",
                     item.active
                       ? "bg-white/20"
                       : "bg-slate-100 dark:bg-slate-800"
@@ -247,9 +283,13 @@ export function Sidebar() {
                   <div className="flex-1">
                     <span className="text-sm font-bold block">{item.label}</span>
                   </div>
-                  {item.badge && (
+                  {item.badgeCount && item.badgeCount > 0 ? (
+                    <span className="min-w-[24px] h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold px-2">
+                      {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                    </span>
+                  ) : item.badge ? (
                     <span className="w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0" />
-                  )}
+                  ) : null}
                 </Link>
               ))}
               
