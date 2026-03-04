@@ -56,6 +56,13 @@ export function TutorSettingsClient({
   console.log("[TutorSettingsClient] Received org:", org);
   console.log("[TutorSettingsClient] Profile organization_id:", profile.organization_id);
 
+  // ── Computed org logo URL ──────────────────────────────────────────────────
+  const orgLogoUrl = org?.logo_url ? (
+    org.logo_url.startsWith('http') 
+      ? org.logo_url 
+      : supabase.storage.from("org-logos").getPublicUrl(org.logo_url).data.publicUrl
+  ) : null;
+
   // ── Editable profile state ─────────────────────────────────────────────────
   const [fullName, setFullName]           = useState(profile.full_name ?? "");
   const [avatarUrl, setAvatarUrl]         = useState(profile.avatar_url ?? "");
@@ -209,9 +216,11 @@ export function TutorSettingsClient({
             </span>
             {org && (
               <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                {org.logo_url
-                  ? <img src={org.logo_url} alt={org.name} className="w-4 h-4 rounded object-cover" />
-                  : <Building2 size={11} />
+                {orgLogoUrl
+                  ? <img src={orgLogoUrl} alt={org.name} className="w-4 h-4 rounded object-cover" />
+                  : <span className="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center text-[8px] font-bold">
+                      {org.name.charAt(0).toUpperCase()}
+                    </span>
                 }
                 {org.name}
               </p>
@@ -349,12 +358,16 @@ export function TutorSettingsClient({
 
         {/* Organisation — locked */}
         <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-500/20 rounded-xl">
-          {org?.logo_url ? (
+          {orgLogoUrl ? (
             <img 
-              src={org.logo_url.startsWith('http') ? org.logo_url : supabase.storage.from("org-logos").getPublicUrl(org.logo_url).data.publicUrl} 
-              alt={org.name} 
+              src={orgLogoUrl} 
+              alt={org?.name || "Organization"} 
               className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-emerald-200 dark:border-emerald-500/30" 
             />
+          ) : org ? (
+            <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 border border-emerald-200 dark:border-emerald-500/30">
+              {org.name.charAt(0).toUpperCase()}
+            </div>
           ) : (
             <Building2 size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
           )}
