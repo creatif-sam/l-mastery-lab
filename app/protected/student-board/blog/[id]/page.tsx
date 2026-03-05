@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { BookOpen, Clock, ArrowLeft, Tag } from "lucide-react";
 import Link from "next/link";
 import { BlogReadTracker } from "../components/blog-read-tracker";
+import { CopyProtection } from "@/components/copy-protection";
 
 export default async function BlogPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,7 +21,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ id: s
   if (!post) return notFound();
 
   return (
-    <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] transition-colors font-sans">
+    <>
+      <CopyProtection />
+      <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] transition-colors font-sans">
       <Sidebar />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Header />
@@ -65,5 +68,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ id: s
         </main>
       </div>
     </div>
+    </>
   );
 }

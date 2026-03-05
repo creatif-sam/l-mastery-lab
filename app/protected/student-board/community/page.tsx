@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "../components/sidebar";
 import { Header } from "../components/header";
 import { CommunityClient } from "./community-client";
+import { CommunityVisitTracker } from "./community-visit-tracker";
 
 export default async function CommunityPage() {
   const supabase = await createClient();
@@ -51,6 +52,7 @@ export default async function CommunityPage() {
 
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] transition-colors">
+      <CommunityVisitTracker />
       <Sidebar />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Header />

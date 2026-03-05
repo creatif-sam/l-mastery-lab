@@ -51,20 +51,30 @@ export function Sidebar() {
       
       setHasUnread(!!unreadCount && unreadCount > 0);
 
-      // Check new community posts (last 24 hours)
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      // Check new community posts since last visit
+      const lastVisit = localStorage.getItem("community_last_visit");
+      
+      // If never visited, show posts from last 24 hours
+      // If visited before, show posts created after that visit
+      const checkFromTime = lastVisit 
+        ? new Date(lastVisit) 
+        : new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
       
       const { count: postsCount } = await supabase
         .from("community_posts")
         .select("*", { count: 'exact', head: true })
-        .gte("created_at", oneDayAgo.toISOString());
+        .gt("created_at", checkFromTime.toISOString());
       
       setNewPostsCount(postsCount || 0);
     };
     
     checkNotifications();
-  }, [supabase]);
+    
+    // Re-check when component mounts or pathname changes to update badge
+    const interval = setInterval(checkNotifications, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [supabase, pathname]);
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
