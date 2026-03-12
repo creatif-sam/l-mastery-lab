@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€ Types â”€
 type OrgMember = { id: string; full_name: string; avatar_url?: string; role?: string };
 
 type Post = {
@@ -35,7 +35,7 @@ type Comment = {
 type Reaction = { post_id: string; type: string };
 type LeaderEntry = { id: string; full_name: string; community_points: number; role: string; avatar_url?: string };
 
-// â”€â”€â”€ UserAvatar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€ UserAvatar â”€
 
 function UserAvatar({
   user, size = "md",
@@ -63,7 +63,7 @@ function UserAvatar({
   );
 }
 
-// â”€â”€â”€ MentionInput â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€ MentionInput â”€
 
 function MentionInput({
   value, onChange, onSubmit, orgMembers, placeholder, rows = 1, className, autoFocus,
@@ -165,7 +165,7 @@ function MentionInput({
   );
 }
 
-// â”€â”€â”€ TextWithMentions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€ TextWithMentions â”€
 
 function TextWithMentions({ text, orgMembers }: { text: string; orgMembers: OrgMember[] }) {
   if (!text) return null;
@@ -191,7 +191,7 @@ function TextWithMentions({ text, orgMembers }: { text: string; orgMembers: OrgM
   }
 }
 
-// â”€â”€â”€ Mention helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€ Mention helpers â”€
 
 function extractMentions(text: string, orgMembers: OrgMember[], excludeId: string): OrgMember[] {
   return orgMembers.filter((m) => m.id !== excludeId && text.includes(`@${m.full_name}`));
@@ -215,7 +215,7 @@ async function notifyMentions(text: string, orgMembers: OrgMember[], authorId: s
   } catch { /* non-critical */ }
 }
 
-// â”€â”€â”€ CommentItem â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€ CommentItem â”€
 
 function CommentItem({
   comment, postId, currentUser, orgMembers,
@@ -323,7 +323,7 @@ function CommentItem({
   );
 }
 
-// â”€â”€â”€ CommunityClient (main export) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€ CommunityClient (main export) â”€
 
 export function CommunityClient({
   currentUser,
@@ -357,7 +357,7 @@ export function CommunityClient({
   const [replyingTo, setReplyingTo] = useState<Record<string, string | null>>({});
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
 
-  // â”€â”€ Image upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Image upload â”€
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -378,7 +378,7 @@ export function CommunityClient({
     setUploadingImage(false);
   };
 
-  // â”€â”€ Create post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Create post â”€
 
   const handlePost = async () => {
     if (!newPost.trim()) { toast.error("Write something first"); return; }
@@ -404,7 +404,7 @@ export function CommunityClient({
     notifyMentions(postedContent, orgMembers, currentUser.id, currentUser.full_name);
   };
 
-  // â”€â”€ Reactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Reactions â”€
 
   const handleReaction = async (postId: string, type: "like" | "love") => {
     const existing = reactions.find((r) => r.post_id === postId && r.type === type);
@@ -434,7 +434,7 @@ export function CommunityClient({
     }
   };
 
-  // â”€â”€ Toggle & load comments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Toggle & load comments â”€
 
   const toggleComments = async (postId: string) => {
     if (expandedComments.includes(postId)) {
@@ -462,7 +462,7 @@ export function CommunityClient({
     }
   };
 
-  // â”€â”€ Post comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Post comment 
 
   const handleComment = async (postId: string) => {
     const text = commentTexts[postId]?.trim();
@@ -484,7 +484,7 @@ export function CommunityClient({
     notifyMentions(text, orgMembers, currentUser.id, currentUser.full_name);
   };
 
-  // â”€â”€ Post reply â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Post reply â”€
 
   const handleReply = async (postId: string, parentCommentId: string) => {
     const text = replyTexts[parentCommentId]?.trim();
@@ -510,7 +510,7 @@ export function CommunityClient({
     notifyMentions(text, orgMembers, currentUser.id, currentUser.full_name);
   };
 
-  // â”€â”€ Delete post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Delete post â”€
 
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("community_posts").delete().eq("id", postId);
@@ -526,7 +526,7 @@ export function CommunityClient({
   const roleBg = (role: string) =>
     role === "admin" ? "bg-red-500/10" : role === "tutor" ? "bg-blue-500/10" : "bg-violet-500/10";
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€ Render â”€
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -543,7 +543,7 @@ export function CommunityClient({
                 value={newPost}
                 onChange={setNewPost}
                 orgMembers={orgMembers}
-                placeholder="Share something with your communityâ€¦ (use @ to mention someone)"
+                placeholder="Share something with your community¦ (use @ to mention someone)"
                 rows={3}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-violet-400 dark:focus:border-violet-500 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 transition-colors"
               />
@@ -716,7 +716,7 @@ export function CommunityClient({
                           onChange={(v) => setCommentTexts((prev) => ({ ...prev, [post.id]: v }))}
                           onSubmit={() => handleComment(post.id)}
                           orgMembers={orgMembers}
-                          placeholder="Add a commentâ€¦ (@ to mention)"
+                          placeholder="Add a comment… (@ to mention)"
                           rows={1}
                           className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl pl-4 pr-12 py-2.5 text-xs outline-none focus:border-violet-400 dark:focus:border-violet-500 text-slate-700 dark:text-slate-200 resize-none transition-colors"
                         />
@@ -733,7 +733,7 @@ export function CommunityClient({
                     {/* Comments list */}
                     {(postComments[post.id] ?? []).length === 0 ? (
                       <p className="text-xs text-slate-400 text-center py-1">
-                        No comments yet â€” be the first!
+                        No comments yet  be the first!
                       </p>
                     ) : (
                       <div className="space-y-4">
@@ -807,7 +807,7 @@ export function CommunityClient({
                 <span className={`text-xs font-black w-5 text-center ${
                   idx === 0 ? "text-amber-500" : idx === 1 ? "text-slate-400" : idx === 2 ? "text-amber-700" : "text-slate-400"
                 }`}>
-                  {idx === 0 ? "ðŸ¥‡" : idx === 1 ? "ðŸ¥ˆ" : idx === 2 ? "ðŸ¥‰" : `#${idx + 1}`}
+                  {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
                 </span>
                 <UserAvatar user={member} size="sm" />
                 <p className={`text-xs font-semibold flex-1 truncate ${
