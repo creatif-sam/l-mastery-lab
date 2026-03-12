@@ -33,6 +33,13 @@ export function Sidebar() {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [newPostsCount, setNewPostsCount] = useState(0); // 🔔 Community Posts Counter
 
+  // Immediately clear community badge when user navigates to that page
+  useEffect(() => {
+    if (pathname.startsWith("/protected/student-board/community")) {
+      setNewPostsCount(0);
+    }
+  }, [pathname]);
+
   useEffect(() => {
     const savedState = localStorage.getItem("sidebar-collapsed");
     setIsCollapsed(savedState === "true");
@@ -171,7 +178,6 @@ export function Sidebar() {
                   )}
                 </div>
               )}
-              {!isCollapsed && !item.badgeCount && <span className="text-sm font-bold truncate animate-in fade-in">{item.label}</span>}
             </Link>
           ))}
         </div>

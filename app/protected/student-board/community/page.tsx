@@ -50,6 +50,15 @@ export default async function CommunityPage() {
   }
   const { data: leaderboard } = await leaderboardQuery;
 
+  // Fetch all org members for @mention autocomplete
+  let membersQuery = supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, role");
+  if (profile?.organization_id) {
+    membersQuery = membersQuery.eq("organization_id", profile.organization_id) as any;
+  }
+  const { data: orgMembers } = await (membersQuery as any).limit(100);
+
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A] transition-colors">
       <CommunityVisitTracker />
@@ -62,6 +71,7 @@ export default async function CommunityPage() {
             initialPosts={posts ?? []}
             myReactions={myReactions ?? []}
             leaderboard={leaderboard ?? []}
+            orgMembers={orgMembers ?? []}
           />
         </main>
       </div>
