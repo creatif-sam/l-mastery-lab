@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 
-// â”€ Types â”€
+// ─ Types ─
 type OrgMember = { id: string; full_name: string; avatar_url?: string; role?: string };
 
 type Post = {
@@ -35,7 +35,7 @@ type Comment = {
 type Reaction = { post_id: string; type: string };
 type LeaderEntry = { id: string; full_name: string; community_points: number; role: string; avatar_url?: string };
 
-// â”€ UserAvatar â”€
+// ─ UserAvatar ─
 
 function UserAvatar({
   user, size = "md",
@@ -63,7 +63,7 @@ function UserAvatar({
   );
 }
 
-// â”€ MentionInput â”€
+// ─ MentionInput ─
 
 function MentionInput({
   value, onChange, onSubmit, orgMembers, placeholder, rows = 1, className, autoFocus,
@@ -165,7 +165,7 @@ function MentionInput({
   );
 }
 
-// â”€ TextWithMentions â”€
+// ─ TextWithMentions ─
 
 function TextWithMentions({ text, orgMembers }: { text: string; orgMembers: OrgMember[] }) {
   if (!text) return null;
@@ -191,7 +191,7 @@ function TextWithMentions({ text, orgMembers }: { text: string; orgMembers: OrgM
   }
 }
 
-// â”€ Mention helpers â”€
+// ─ Mention helpers ─
 
 function extractMentions(text: string, orgMembers: OrgMember[], excludeId: string): OrgMember[] {
   return orgMembers.filter((m) => m.id !== excludeId && text.includes(`@${m.full_name}`));
@@ -207,7 +207,7 @@ async function notifyMentions(text: string, orgMembers: OrgMember[], authorId: s
       body: JSON.stringify({
         user_ids: mentioned.map((m) => m.id),
         title: `${authorName} mentioned you`,
-        message: `${authorName} mentioned you in the community â€” tap to view.`,
+        message: `${authorName} mentioned you in the community — tap to view.`,
         type: "mention",
         link: "/protected/student-board/community",
       }),
@@ -215,7 +215,7 @@ async function notifyMentions(text: string, orgMembers: OrgMember[], authorId: s
   } catch { /* non-critical */ }
 }
 
-// â”€ CommentItem â”€
+// ─ CommentItem ─
 
 function CommentItem({
   comment, postId, currentUser, orgMembers,
@@ -281,7 +281,7 @@ function CommentItem({
                 onChange={(v) => onReplyTextChange(comment.id, v)}
                 onSubmit={() => onSubmitReply(comment.id)}
                 orgMembers={orgMembers}
-                placeholder={`Reply to ${comment.author?.full_name}â€¦ (@ to mention)`}
+                placeholder={`Reply to ${comment.author?.full_name} (@ to mention)`}
                 rows={1}
                 autoFocus
                 className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl pl-4 pr-11 py-2.5 text-xs outline-none focus:border-violet-400 dark:focus:border-violet-500 text-slate-700 dark:text-slate-200 resize-none transition-colors"
@@ -323,7 +323,7 @@ function CommentItem({
   );
 }
 
-// â”€ CommunityClient (main export) â”€
+// ─ CommunityClient (main export) ─
 
 export function CommunityClient({
   currentUser,
@@ -357,7 +357,7 @@ export function CommunityClient({
   const [replyingTo, setReplyingTo] = useState<Record<string, string | null>>({});
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
 
-  // â”€ Image upload â”€
+  //  Image upload
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -378,7 +378,7 @@ export function CommunityClient({
     setUploadingImage(false);
   };
 
-  // â”€ Create post â”€
+  // ─ Create post ─
 
   const handlePost = async () => {
     if (!newPost.trim()) { toast.error("Write something first"); return; }
@@ -399,12 +399,12 @@ export function CommunityClient({
     setPosts((prev) => [data as any, ...prev]);
     setMyPoints((p) => p + 1);
     setNewPost(""); setImageUrl(""); setShowImagePreview(false);
-    toast.success("+1 point earned for posting! ðŸŽ‰");
+    toast.success("+1 point earned for posting!");
     setPosting(false);
     notifyMentions(postedContent, orgMembers, currentUser.id, currentUser.full_name);
   };
 
-  // â”€ Reactions â”€
+  // ─ Reactions ─
 
   const handleReaction = async (postId: string, type: "like" | "love") => {
     const existing = reactions.find((r) => r.post_id === postId && r.type === type);
@@ -434,7 +434,7 @@ export function CommunityClient({
     }
   };
 
-  // â”€ Toggle & load comments â”€
+  // ─ Toggle & load comments
 
   const toggleComments = async (postId: string) => {
     if (expandedComments.includes(postId)) {
@@ -462,7 +462,7 @@ export function CommunityClient({
     }
   };
 
-  // â”€ Post comment 
+  // ─ Post comment
 
   const handleComment = async (postId: string) => {
     const text = commentTexts[postId]?.trim();
@@ -484,7 +484,7 @@ export function CommunityClient({
     notifyMentions(text, orgMembers, currentUser.id, currentUser.full_name);
   };
 
-  // â”€ Post reply â”€
+  // Post reply
 
   const handleReply = async (postId: string, parentCommentId: string) => {
     const text = replyTexts[parentCommentId]?.trim();
@@ -510,7 +510,7 @@ export function CommunityClient({
     notifyMentions(text, orgMembers, currentUser.id, currentUser.full_name);
   };
 
-  // â”€ Delete post â”€
+  // ─ Delete post ─
 
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("community_posts").delete().eq("id", postId);
@@ -526,7 +526,7 @@ export function CommunityClient({
   const roleBg = (role: string) =>
     role === "admin" ? "bg-red-500/10" : role === "tutor" ? "bg-blue-500/10" : "bg-violet-500/10";
 
-  // â”€ Render â”€
+  // ─ Render ─
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -543,7 +543,7 @@ export function CommunityClient({
                 value={newPost}
                 onChange={setNewPost}
                 orgMembers={orgMembers}
-                placeholder="Share something with your community¦ (use @ to mention someone)"
+                placeholder="Share something with your community… (use @ to mention someone)"
                 rows={3}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-violet-400 dark:focus:border-violet-500 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 transition-colors"
               />
@@ -566,7 +566,7 @@ export function CommunityClient({
                     className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-500 transition-colors disabled:opacity-50"
                   >
                     {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <Image size={14} />}
-                    {uploadingImage ? "Uploadingâ€¦" : "Photo"}
+                    {uploadingImage ? "Uploading…" : "Photo"}
                   </button>
                   <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </div>
@@ -611,7 +611,7 @@ export function CommunityClient({
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">
                     {post.created_at ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true }) : "just now"}
-                    {" Â· "}
+                    {" · "}
                     <span className="text-amber-500 font-semibold">{post.author?.community_points?.toFixed(1)} pts</span>
                   </p>
                 </div>
@@ -637,7 +637,7 @@ export function CommunityClient({
               </div>
             )}
 
-            {/* Reaction summary bar â€“ LinkedIn style */}
+            {/* Reaction summary bar — LinkedIn style */}
             {(post.likes_count > 0 || post.loves_count > 0 || post.comments_count > 0) && (
               <div className="px-4 pb-2 flex items-center gap-1.5">
                 {post.likes_count > 0 && (
@@ -661,7 +661,7 @@ export function CommunityClient({
               </div>
             )}
 
-            {/* Action buttons â€“ LinkedIn 3-column grid */}
+            {/* Action buttons — LinkedIn 3-column grid */}
             <div className="border-t border-slate-100 dark:border-white/5 px-2 py-1 grid grid-cols-3 gap-1">
               <button
                 onClick={() => handleReaction(post.id, "like")}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ResultsButton } from "../components/quiz/results-button"; // The component created above
+import { QuizTabNav } from "../components/quiz/quiz-tab-nav";
 
 export default async function QuizLibraryPage() {
   const supabase = await createClient();
@@ -38,6 +39,8 @@ export default async function QuizLibraryPage() {
               </h1>
               <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.4em]">Review performance data and launch modules</p>
             </div>
+
+            <QuizTabNav />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {quizzes?.map((quiz) => {
