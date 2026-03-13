@@ -161,7 +161,8 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
     if (phase !== "question") return;
     clearAllTimers();
     revFiredRef.current = false;
-    const t0 = qSecsRef.current;
+    const curQ = questionsRef.current[qIdxRef.current];
+    const t0   = (curQ?.time_limit > 0 ? curQ.time_limit : qSecsRef.current) || Q_SECS_DEFAULT;
     setTimeLeft(t0);
     let t = t0;
     timerRef.current = setInterval(() => {
@@ -195,7 +196,6 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
       })
       .on("broadcast", { event: "game_start" }, ({ payload }) => {
         if (isHostRef.current) return;
-        // Use host-defined time per question if provided
         if (payload.timeSecs) { qSecsRef.current = payload.timeSecs; setQSecs(payload.timeSecs); }
         questionsRef.current = payload.questions;
         setQuestions(payload.questions);
@@ -326,7 +326,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
     setStartingGame(true);
     const { data: qs, error } = await supabase
       .from("questions")
-      .select("id, quiz_id, question_text, explanation, options:question_options(id, option_text, is_correct)")
+      .select("id, quiz_id, question_text, explanation, time_limit, options:question_options(id, option_text, is_correct)")
       .eq("quiz_id", selectedQzRef.current)
       .order("created_at", { ascending: true });
 
@@ -413,16 +413,16 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
               <div key={i.label} className="flex items-center gap-1.5 justify-center">{i.icon} {i.label}</div>
             ))}
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-xs mx-auto pt-3">
+          <div className="flex flex-col gap-3 justify-center max-w-xs mx-auto pt-3">
             <button
               onClick={() => { setShowCreate(true); setShowJoin(false); }}
-              className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-black px-5 py-3 rounded-2xl transition-colors text-sm"
+              className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-black px-5 py-3 rounded transition-colors text-sm"
             >
               <Zap size={15} /> Create Game
             </button>
             <button
               onClick={() => { setShowJoin(true); setShowCreate(false); }}
-              className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-black px-5 py-3 rounded-2xl transition-colors text-sm"
+              className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-black px-5 py-3 rounded transition-colors text-sm"
             >
               <LogIn size={15} /> Join Game
             </button>
@@ -437,19 +437,19 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4"
+              className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-white/10 p-4 space-y-3"
             >
-              <h3 className="font-black text-slate-800 dark:text-white text-lg">Choose a Quiz</h3>
+              <h3 className="font-black text-slate-800 dark:text-white">Choose a Quiz</h3>
               {quizzes.length === 0 ? (
                 <p className="text-slate-400 text-sm">No quizzes available yet.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 gap-2">
                   {quizzes.map(q => (
                     <button
                       key={q.id}
                       onClick={() => setSelectedQuiz(q.id)}
                       className={cn(
-                        "p-4 rounded-xl text-left border-2 transition-all",
+                        "p-3 rounded text-left border-2 transition-all",
                         selectedQuiz === q.id
                           ? "border-violet-500 bg-violet-50 dark:bg-violet-500/10"
                           : "border-slate-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-violet-700"
@@ -469,7 +469,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
                 <div className="flex flex-wrap gap-1.5">
                   {[10, 15, 20, 25, 30, 45, 60].map(t => (
                     <button key={t} onClick={() => { setQSecs(t); qSecsRef.current = t; }}
-                      className={cn("px-2.5 py-1 rounded-lg text-xs font-bold border transition-all",
+                      className={cn("px-2.5 py-1 rounded text-xs font-bold border transition-all",
                         qSecs === t ? "bg-violet-600 text-white border-violet-600" : "border-slate-200 dark:border-white/10 text-slate-500 hover:border-violet-400"
                       )}>{t}s</button>
                   ))}
@@ -478,7 +478,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
               <button
                 onClick={handleCreate}
                 disabled={!selectedQuiz || creatingGame}
-                className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-black rounded flex items-center justify-center gap-2 transition-colors"
               >
                 {creatingGame ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play size={15} />}
                 {creatingGame ? "Creating…" : "Create Game"}
@@ -495,9 +495,9 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4"
+              className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-white/10 p-4 space-y-3"
             >
-              <h3 className="font-black text-slate-800 dark:text-white text-lg">Enter Game Code</h3>
+              <h3 className="font-black text-slate-800 dark:text-white">Enter Game Code</h3>
               <input
                 value={joinInput}
                 onChange={e => setJoinInput(e.target.value.toUpperCase())}
@@ -505,12 +505,12 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
                 placeholder="ABC123"
                 maxLength={8}
                 autoFocus
-                className="w-full px-4 py-4 text-center text-4xl font-black tracking-[0.5em] border-2 border-slate-200 dark:border-white/10 rounded-2xl bg-transparent text-slate-800 dark:text-white focus:border-violet-500 outline-none transition-colors uppercase"
+                className="w-full px-4 py-4 text-center text-4xl font-black tracking-[0.5em] border-2 border-slate-200 dark:border-white/10 rounded bg-transparent text-slate-800 dark:text-white focus:border-violet-500 outline-none transition-colors uppercase"
               />
               <button
                 onClick={handleJoin}
                 disabled={joinInput.length < 4 || joiningGame}
-                className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-black rounded flex items-center justify-center gap-2 transition-colors"
               >
                 {joiningGame ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn size={15} />}
                 {joiningGame ? "Joining…" : "Join Game"}
@@ -588,7 +588,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
           <button
             onClick={handleStart}
             disabled={startingGame || players.length < 1}
-            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-black rounded-2xl flex items-center justify-center gap-2 text-lg transition-colors shadow-lg shadow-emerald-500/20"
+            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-black rounded flex items-center justify-center gap-2 text-lg transition-colors shadow-lg shadow-emerald-500/20"
           >
             {startingGame ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play size={20} />}
             {startingGame ? "Starting…" : `Start Game  (${players.length} player${players.length !== 1 ? "s" : ""})`}
@@ -609,7 +609,8 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
   if (phase === "question") {
     const currentQ = questions[qIdx];
     const opts     = currentQ?.options || currentQ?.question_options || [];
-    const pct      = (timeLeft / qSecsRef.current) * 100;
+    const qTotal   = (currentQ?.time_limit > 0 ? currentQ.time_limit : qSecsRef.current) || Q_SECS_DEFAULT;
+    const pct      = (timeLeft / qTotal) * 100;
     const isLow    = timeLeft <= 5;
 
     return (

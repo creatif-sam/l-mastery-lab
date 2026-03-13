@@ -36,6 +36,7 @@ interface QuizQuestion {
   question_text: string;
   explanation: string;
   question_type: QuestionType;
+  time_limit: number; // 0 = use session global time
   options: QuizOption[];
 }
 
@@ -85,6 +86,7 @@ const emptyMC = (): QuizQuestion => ({
   question_text: "",
   explanation: "",
   question_type: "multiple_choice",
+  time_limit: 0,
   options: [
     { option_text: "", is_correct: true },
     { option_text: "", is_correct: false },
@@ -97,11 +99,14 @@ const emptyTF = (): QuizQuestion => ({
   question_text: "",
   explanation: "",
   question_type: "true_false",
+  time_limit: 0,
   options: [
     { option_text: "True", is_correct: true },
     { option_text: "False", is_correct: false },
   ],
 });
+
+const Q_TIME_OPTIONS = [0, 10, 15, 20, 30, 45, 60];
 
 // ─ Helper: Medal colors ──────────────────────────────────────
 function medalColor(rank: number) {
@@ -344,7 +349,8 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
     if (phase !== "question") return;
     clearAllTimers();
     revFiredRef.current = false;
-    const t0 = timeSecsRef.current;
+    const curQ = questionsRef.current[qIdxRef.current];
+    const t0   = (curQ?.time_limit > 0 ? curQ.time_limit : timeSecsRef.current) || 15;
     setTimeLeft(t0);
     let t = t0;
     timerRef.current = setInterval(() => {
@@ -368,15 +374,31 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
     setSavingQuiz(true);
     const { data: quiz, error: qErr } = await supabase
       .from("quizzes")
-      .insert({ ...newQuizForm, created_by: currentUser.id })
+      .insert({
+        title: newQuizForm.title.trim(),
+        description: newQuizForm.description.trim() || null,
+        target_language: newQuizForm.target_language,
+        difficulty_level: newQuizForm.difficulty_level,
+        created_by: currentUser.id,
+      })
       .select("id").single();
 
-    if (qErr || !quiz) { toast.error("Failed to create quiz"); setSavingQuiz(false); return null; }
+    if (qErr || !quiz) {
+      toast.error(`Failed to create quiz: ${qErr?.message ?? "unknown error"}`);
+      setSavingQuiz(false);
+      return null;
+    }
 
     for (const q of newQuestions) {
       const { data: question, error: rErr } = await supabase
         .from("questions")
-        .insert({ quiz_id: quiz.id, question_text: q.question_text, explanation: q.explanation, question_type: q.question_type })
+        .insert({
+          quiz_id: quiz.id,
+          question_text: q.question_text,
+          explanation: q.explanation || null,
+          question_type: q.question_type,
+          time_limit: q.time_limit,
+        })
         .select("id").single();
 
       if (rErr || !question) { toast.error("Failed to save question"); setSavingQuiz(false); return null; }
@@ -444,7 +466,7 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
 
     const { data: qs, error } = await supabase
       .from("questions")
-      .select("id, question_text, question_type, explanation, options:question_options(id, option_text, is_correct)")
+      .select("id, question_text, question_type, explanation, time_limit, options:question_options(id, option_text, is_correct)")
       .eq("quiz_id", qzId)
       .order("created_at", { ascending: true });
 
@@ -513,8 +535,15 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
 
   const changeQuestionType = (i: number, type: QuestionType) => {
     setNewQuestions(prev => prev.map((q, idx) =>
-      idx === i ? (type === "multiple_choice" ? { ...emptyMC(), question_text: q.question_text, explanation: q.explanation } : { ...emptyTF(), question_text: q.question_text, explanation: q.explanation }) : q
+      idx === i ? (type === "multiple_choice"
+        ? { ...emptyMC(), question_text: q.question_text, explanation: q.explanation, time_limit: q.time_limit }
+        : { ...emptyTF(), question_text: q.question_text, explanation: q.explanation, time_limit: q.time_limit }
+      ) : q
     ));
+  };
+
+  const updateQuestionTime = (i: number, val: number) => {
+    setNewQuestions(prev => prev.map((q, idx) => idx === i ? { ...q, time_limit: val } : q));
   };
 
   const updateOption = (qi: number, oi: number, field: string, val: string | boolean) => {
@@ -550,7 +579,7 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
           </div>
           <button
             onClick={() => setPhase("setup_quiz")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm rounded-xl transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm rounded transition-colors"
           >
             <Plus size={15} /> New Battle
           </button>
@@ -903,18 +932,43 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
                   value={q.explanation}
                   onChange={e => updateQuestion(qi, "explanation", e.target.value)}
                   placeholder="Explanation (optional — shown after reveal)"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-500 focus:outline-none focus:border-violet-300 transition-colors"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded text-xs text-slate-500 focus:outline-none focus:border-violet-300 transition-colors"
                 />
+
+                {/* Per-question time limit */}
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 mb-1.5 flex items-center gap-1">
+                    <Timer size={10} /> Time limit:
+                    <span className="text-violet-500">{q.time_limit > 0 ? `${q.time_limit}s` : "use global"}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {Q_TIME_OPTIONS.map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => updateQuestionTime(qi, t)}
+                        className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-bold border transition-all",
+                          q.time_limit === t
+                            ? "bg-violet-600 text-white border-violet-600"
+                            : "border-slate-200 dark:border-white/10 text-slate-500 hover:border-violet-400"
+                        )}
+                      >
+                        {t === 0 ? "global" : `${t}s`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             ))}
 
             {/* Add question buttons */}
-            <div className="flex gap-2">
-              <button onClick={() => addQuestion("multiple_choice")} className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 dark:border-white/20 text-slate-500 hover:text-violet-600 hover:border-violet-400 rounded-xl text-sm font-bold transition-colors">
-                <Plus size={14} /> 4-Option Question
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => addQuestion("multiple_choice")} className="flex items-center gap-2 px-3 py-2 border-2 border-dashed border-slate-300 dark:border-white/20 text-slate-500 hover:text-violet-600 hover:border-violet-400 rounded text-sm font-bold transition-colors">
+                <Plus size={14} /> 4-Option
               </button>
-              <button onClick={() => addQuestion("true_false")} className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 dark:border-white/20 text-slate-500 hover:text-violet-600 hover:border-violet-400 rounded-xl text-sm font-bold transition-colors">
-                <Plus size={14} /> True / False
+              <button onClick={() => addQuestion("true_false")} className="flex items-center gap-2 px-3 py-2 border-2 border-dashed border-slate-300 dark:border-white/20 text-slate-500 hover:text-violet-600 hover:border-violet-400 rounded text-sm font-bold transition-colors">
+                <Plus size={14} /> True/False
               </button>
             </div>
           </div>
@@ -922,7 +976,7 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
 
         <button
           onClick={() => { if (quizTab === "existing" && !selectedQuizId) { toast.error("Select a quiz"); return; } setPhase("setup_config"); }}
-          className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-colors"
+          className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-black rounded flex items-center justify-center gap-2 transition-colors"
         >
           Next: Configure Game →
         </button>
@@ -985,7 +1039,7 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
         <button
           onClick={handleCreateSession}
           disabled={creatingSession}
-          className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-colors"
+          className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-black rounded flex items-center justify-center gap-2 transition-colors"
         >
           {creatingSession ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play size={15} />}
           {creatingSession ? "Creating…" : "Create Battle Room →"}
