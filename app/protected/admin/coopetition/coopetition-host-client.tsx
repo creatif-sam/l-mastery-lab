@@ -8,7 +8,7 @@ import {
   Swords, Plus, Play, Copy, Users, Trophy, Timer, CheckCircle2,
   XCircle, ArrowLeft, BarChart3, RefreshCw, Loader2, Search,
   BookOpen, Zap, Medal, ChevronDown, Trash2, AlertTriangle,
-  Globe, Star, TrendingUp, Clock, Target,
+  Globe, Star, TrendingUp, Clock, Target, RotateCcw, Eye, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -129,6 +129,9 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
   const [reportSession, setReportSession] = useState<any | null>(null);
   const [reportData, setReportData] = useState<any | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [resettingScores, setResettingScores] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [reportProfileModal, setReportProfileModal] = useState<any | null>(null);
 
   // ── Quiz setup ─────────────────────────────────────────────
   const [quizzes] = useState(initialQuizzes);
@@ -250,6 +253,52 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
 
     setReportData({ participants: participants ?? [], answers: answers ?? [], questions: qs ?? [] });
     setLoadingReport(false);
+  };
+
+  // ── Reset session scores (archive first, then zero out) ───
+  const handleResetSessionScores = async () => {
+    if (!reportSession || !reportData) return;
+    setResettingScores(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: archiverProfile } = await supabase
+        .from("profiles").select("full_name").eq("id", user?.id ?? "").single();
+
+      // Archive each participant's score
+      const archives = reportData.participants.map((p: any) => ({
+        archived_by: user?.id ?? null,
+        archived_by_name: archiverProfile?.full_name ?? "Unknown",
+        user_id: p.user_id ?? null,
+        user_name: p.display_name ?? "Unknown",
+        score_type: "arena",
+        session_id: reportSession.id,
+        quiz_title: reportSession.quiz?.title ?? null,
+        original_score: p.score ?? 0,
+        metadata: { session_id: reportSession.id, quiz_title: reportSession.quiz?.title },
+      }));
+
+      if (archives.length > 0) {
+        await supabase.from("score_archives").insert(archives);
+      }
+
+      // Zero out scores
+      await supabase
+        .from("coopetition_participants")
+        .update({ score: 0 })
+        .eq("session_id", reportSession.id);
+
+      // Refresh report
+      setReportData((prev: any) => ({
+        ...prev,
+        participants: prev.participants.map((p: any) => ({ ...p, score: 0 })),
+      }));
+      setShowResetConfirm(false);
+      toast.success("Scores reset and archived successfully");
+    } catch {
+      toast.error("Failed to reset scores");
+    } finally {
+      setResettingScores(false);
+    }
   };
 
   // ── Realtime subscribe ─────────────────────────────────────
@@ -651,14 +700,94 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => { setReportSession(null); setReportData(null); }} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-            <ArrowLeft size={18} className="text-slate-500" />
-          </button>
-          <div>
-            <h2 className="text-xl font-black text-slate-800 dark:text-white">Battle Report</h2>
-            <p className="text-xs text-slate-400">{reportSession.quiz?.title} · {formatDistanceToNow(new Date(reportSession.created_at), { addSuffix: true })}</p>
+        {/* Reset confirm modal */}
+        {showResetConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-md p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 dark:text-white">Reset Session Scores?</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">This will archive current scores, then set all to 0.</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Scores for <span className="font-bold text-slate-800 dark:text-white">{reportSession.quiz?.title}</span> will be archived and visible in the admin Archives tab.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetSessionScores}
+                  disabled={resettingScores}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                >
+                  {resettingScores ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                  {resettingScores ? "Resetting…" : "Reset & Archive"}
+                </button>
+              </div>
+            </div>
           </div>
+        )}
+
+        {/* Participant profile modal */}
+        {reportProfileModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-sm overflow-hidden">
+              <div className="h-20 bg-gradient-to-r from-violet-600 to-indigo-600 relative">
+                <button onClick={() => setReportProfileModal(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center text-white">
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-0 left-6 translate-y-1/2">
+                  <div className="w-16 h-16 rounded-xl border-4 border-white dark:border-slate-900 overflow-hidden bg-violet-200 flex items-center justify-center text-violet-700 font-black text-2xl shadow-md">
+                    {reportProfileModal.display_name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+                </div>
+              </div>
+              <div className="pt-12 px-6 pb-6 space-y-3">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">{reportProfileModal.display_name}</h3>
+                  <p className="text-sm text-violet-600 dark:text-violet-400">Battle participant</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-violet-600">{reportProfileModal.score ?? 0}</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mt-0.5">Score</p>
+                  </div>
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-emerald-600">
+                      {answers.filter((a: any) => a.user_id === reportProfileModal.user_id && a.is_correct).length}
+                    </p>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mt-0.5">Correct</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <button onClick={() => { setReportSession(null); setReportData(null); }} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <ArrowLeft size={18} className="text-slate-500" />
+            </button>
+            <div>
+              <h2 className="text-xl font-black text-slate-800 dark:text-white">Battle Report</h2>
+              <p className="text-xs text-slate-400">{reportSession.quiz?.title} · {formatDistanceToNow(new Date(reportSession.created_at), { addSuffix: true })}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/40 text-red-600 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+          >
+            <RotateCcw size={14} /> Reset Scores
+          </button>
         </div>
 
         {loadingReport ? (
@@ -692,10 +821,13 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
                     const heights = ["h-20", "h-28", "h-16"];
                     return (
                       <div key={pos} className="flex flex-col items-center gap-2">
-                        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-lg font-black text-white", pos === 0 ? "bg-yellow-500" : pos === 1 ? "bg-slate-400" : "bg-amber-600")}>
+                        <button
+                          onClick={() => setReportProfileModal(p)}
+                          className={cn("w-12 h-12 rounded-full flex items-center justify-center text-lg font-black text-white hover:ring-2 hover:ring-white/50 transition-all", pos === 0 ? "bg-yellow-500" : pos === 1 ? "bg-slate-400" : "bg-amber-600")}
+                        >
                           {p.display_name?.[0]?.toUpperCase() ?? "?"}
-                        </div>
-                        <p className="text-xs font-bold text-white truncate max-w-[80px] text-center">{p.display_name}</p>
+                        </button>
+                        <p className="text-xs font-bold text-white text-center max-w-[80px] leading-tight">{p.display_name}</p>
                         <p className="text-[10px] text-white/50">{p.score} pts</p>
                         <div className={cn("w-20 rounded-t-xl flex items-center justify-center", heights[pos],
                           pos === 0 ? "bg-yellow-500/20 border-t-2 border-yellow-400" :
@@ -726,9 +858,16 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
                         {p.display_name?.[0]?.toUpperCase() ?? "?"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-slate-800 dark:text-white truncate">{p.display_name}</p>
+                        <p className="font-bold text-sm text-slate-800 dark:text-white leading-tight">{p.display_name}</p>
                         <p className="text-xs text-slate-400">{correct}/{rqs.length} correct</p>
                       </div>
+                      <button
+                        onClick={() => setReportProfileModal(p)}
+                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+                        title="View profile"
+                      >
+                        <Eye size={14} />
+                      </button>
                       <span className="font-black text-violet-600 dark:text-violet-400 text-sm">{p.score} pts</span>
                     </div>
                   );

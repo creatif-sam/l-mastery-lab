@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Clock, Lock, Zap, Target, Briefcase, Edit3, X, Check, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Clock, Lock, Zap, Target, Edit3, X, Check, Loader2, MessageCircle, FileText, Eye } from "lucide-react";
 import Image from "next/image";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { PartnerButton } from "./partner-button";
@@ -31,6 +31,112 @@ interface Props {
   sentRequests?: Array<{ id: string; receiver_id: string }>;
   isMyGroupFull: boolean;
   myProfile?: Member | null;
+}
+
+// ── Profile View Modal ────────────────────────────────────────
+function ProfileViewModal({ member, onClose }: { member: Member; onClose: () => void }) {
+  const supabase = createClient();
+  const [stats, setStats] = useState<{ posts: number; comments: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      const [{ count: postsCount }, { count: commentsCount }] = await Promise.all([
+        supabase.from("community_posts").select("*", { count: "exact", head: true }).eq("author_id", member.id),
+        supabase.from("community_comments").select("*", { count: "exact", head: true }).eq("author_id", member.id),
+      ]);
+      setStats({ posts: postsCount ?? 0, comments: commentsCount ?? 0 });
+      setLoading(false);
+    }
+    fetchStats();
+  }, [member.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const roleColor = member.role === "tutor" ? "from-blue-500 to-indigo-600"
+    : member.role === "admin" ? "from-red-500 to-rose-600"
+    : "from-violet-600 to-indigo-600";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-sm overflow-hidden">
+        {/* Banner */}
+        <div className={`h-24 bg-gradient-to-r ${roleColor} relative`}>
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <div className="absolute bottom-0 left-6 translate-y-1/2">
+            <div className="w-18 h-18 rounded-2xl border-4 border-white dark:border-slate-900 overflow-hidden shadow-lg bg-slate-100" style={{ width: 72, height: 72 }}>
+              {member.avatar_url ? (
+                <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-[#003366] dark:bg-violet-700 text-white flex items-center justify-center font-black text-2xl uppercase">
+                  {member.full_name.charAt(0)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-12 px-6 pb-6 space-y-4">
+          {/* Name + role */}
+          <div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight">{member.full_name}</h3>
+            <p className="text-sm text-violet-600 dark:text-violet-400 font-semibold mt-0.5">
+              {member.title || (member.role ? member.role.charAt(0).toUpperCase() + member.role.slice(1) : "Specialist")}
+            </p>
+          </div>
+
+          {/* Bio */}
+          {member.bio && (
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed border-l-2 border-violet-200 dark:border-violet-700 pl-3">
+              {member.bio}
+            </p>
+          )}
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Level", value: member.level ?? 1, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-900/20" },
+              { label: "XP", value: member.xp ?? 0, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
+              {
+                label: "Posts",
+                value: loading ? null : (stats?.posts ?? 0),
+                color: "text-blue-600 dark:text-blue-400",
+                bg: "bg-blue-50 dark:bg-blue-900/20",
+              },
+              {
+                label: "Comments",
+                value: loading ? null : (stats?.comments ?? 0),
+                color: "text-emerald-600 dark:text-emerald-400",
+                bg: "bg-emerald-50 dark:bg-emerald-900/20",
+              },
+            ].map((stat) => (
+              <div key={stat.label} className={`${stat.bg} rounded-xl p-3 text-center`}>
+                {stat.value === null ? (
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto text-slate-400" />
+                ) : (
+                  <p className={`text-lg font-black ${stat.color}`}>{stat.value}</p>
+                )}
+                <p className="text-[9px] text-slate-400 uppercase font-bold mt-0.5">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Collaboration target */}
+          {member.collaboration_target && (
+            <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-700/30 rounded-xl flex items-start gap-2">
+              <Target className="w-3 h-3 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 leading-relaxed font-medium">
+                {member.collaboration_target}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Inline Profile Edit Modal ────────────────────────────────
@@ -130,6 +236,7 @@ export function SearchableGrid({ members, userId, sentRequests, isMyGroupFull, m
   const [query, setQuery] = useState("");
   const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [viewingMember, setViewingMember] = useState<Member | null>(null);
 
   const filteredMembers = members.filter((m) => {
     const searchStr = `${m.full_name} ${m.role ?? ""} ${m.title ?? ""}`.toLowerCase();
@@ -201,9 +308,9 @@ export function SearchableGrid({ members, userId, sentRequests, isMyGroupFull, m
               )}
             >
               {/* Card Banner */}
-              <div className="h-12 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/60 relative">
+              <div className="h-20 bg-gradient-to-r from-violet-100 to-indigo-50 dark:from-slate-800 dark:to-slate-800/60 relative">
                 <div className={cn(
-                  "absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase",
+                  "absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase",
                   isActive
                     ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400"
                     : "bg-slate-100 dark:bg-white/5 text-slate-400"
@@ -214,26 +321,26 @@ export function SearchableGrid({ members, userId, sentRequests, isMyGroupFull, m
               </div>
 
               {/* Avatar + Name */}
-              <div className="px-5 pb-0 -mt-7 flex gap-3 items-end">
+              <div className="px-5 pb-0 -mt-8 flex gap-3 items-end">
                 <div className="relative flex-shrink-0">
-                  <div className="w-14 h-14 rounded-xl border-2 border-white dark:border-slate-900 overflow-hidden bg-slate-100 shadow-sm">
+                  <div className="w-16 h-16 rounded-xl border-2 border-white dark:border-slate-900 overflow-hidden bg-slate-100 shadow-sm">
                     {member.avatar_url ? (
                       <Image src={member.avatar_url} alt={member.full_name} fill className="object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-[#003366] dark:bg-violet-700 text-white flex items-center justify-center font-black text-lg uppercase italic">
+                      <div className="w-full h-full bg-[#003366] dark:bg-violet-700 text-white flex items-center justify-center font-black text-xl uppercase italic">
                         {member.full_name.charAt(0)}
                       </div>
                     )}
                   </div>
                 </div>
                 <div className="pb-2 min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-black text-sm text-slate-900 dark:text-white truncate">{member.full_name}</h3>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="font-black text-sm text-slate-900 dark:text-white leading-tight break-words">{member.full_name}</h3>
                     {isMe && (
                       <span className="flex-shrink-0 text-[8px] font-black bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded uppercase">You</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-violet-600 dark:text-violet-400 font-semibold truncate">
+                  <p className="text-[10px] text-violet-600 dark:text-violet-400 font-semibold mt-0.5">
                     {member.title || (member.role ? member.role.charAt(0).toUpperCase() + member.role.slice(1) : "Specialist")}
                   </p>
                 </div>
@@ -275,7 +382,15 @@ export function SearchableGrid({ members, userId, sentRequests, isMyGroupFull, m
               )}
 
               {/* Action Button */}
-              <div className="px-5 py-4 mt-auto pt-4">
+              <div className="px-5 py-4 mt-auto pt-4 flex flex-col gap-2">
+                {!isMe && (
+                  <button
+                    onClick={() => setViewingMember(member)}
+                    className="w-full py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 dark:hover:bg-violet-900/20 dark:hover:text-violet-400 transition-colors"
+                  >
+                    <Eye className="w-3 h-3" /> View Profile
+                  </button>
+                )}
                 {!isMe && !member.group_id ? (
                   <PartnerButton receiverId={member.id} initialPendingId={activeRequest?.id} isGroupFull={isMyGroupFull} />
                 ) : isMe ? (
@@ -305,6 +420,11 @@ export function SearchableGrid({ members, userId, sentRequests, isMyGroupFull, m
       {/* Profile Edit Modal */}
       {editOpen && myProfile && (
         <ProfileEditModal profile={myProfile} onClose={() => setEditOpen(false)} />
+      )}
+
+      {/* Profile View Modal */}
+      {viewingMember && (
+        <ProfileViewModal member={viewingMember} onClose={() => setViewingMember(null)} />
       )}
     </div>
   );

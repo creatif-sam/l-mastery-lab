@@ -3,6 +3,7 @@ import { Header } from "../../components/header";
 import { createClient } from "@/lib/supabase/server";
 import { Zap, Activity, BarChart3, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { PdfExportButton } from "./pdf-export-button";
 
 export default async function ResultsPage() {
   const supabase = await createClient();
@@ -62,8 +63,11 @@ export default async function ResultsPage() {
                 </h1>
                 <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.4em]">Performance Data Analysis</p>
               </div>
-              <div className="text-[10px] font-black bg-emerald-500/10 text-emerald-600 px-4 py-2 rounded-full border border-emerald-500/20 uppercase tracking-widest">
-                Status: Assessment Completed
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="text-[10px] font-black bg-emerald-500/10 text-emerald-600 px-4 py-2 rounded-full border border-emerald-500/20 uppercase tracking-widest">
+                  Status: Assessment Completed
+                </div>
+                <PdfExportButton />
               </div>
             </div>
 

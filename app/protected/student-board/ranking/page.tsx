@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Swords,
   Medal,
-  User
+  User,
+  Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -101,6 +102,39 @@ export default async function OrganizationRankingPage() {
         .map((s: any) => ({ profile_id: s.id, full_name: s.full_name, top_arena_score: topScoreMap.get(s.id) ?? 0 }))
         .sort((a, b) => b.top_arena_score - a.top_arena_score)
         .slice(0, 10);
+    }
+  }
+
+  // Blog reading streak
+  const { data: blogViews } = user
+    ? await supabase
+        .from("page_views")
+        .select("created_at")
+        .eq("user_id", user.id)
+        .ilike("path", "%/blog/%")
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  const uniqueBlogDays = Array.from(
+    new Set(
+      (blogViews ?? []).map((v: any) =>
+        new Date(v.created_at).toLocaleDateString("en-CA") // YYYY-MM-DD in local time
+      )
+    )
+  ).sort((a, b) => (a < b ? 1 : -1)); // descending
+
+  let blogStreak = 0;
+  const today = new Date();
+  for (let i = 0; ; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toLocaleDateString("en-CA");
+    if (uniqueBlogDays.includes(dateStr)) {
+      blogStreak++;
+    } else {
+      // Allow a 1-day gap only for yesterday (so today with no read yet doesn't break streak)
+      if (i === 0) continue;
+      break;
     }
   }
 
@@ -264,6 +298,80 @@ export default async function OrganizationRankingPage() {
               </section>
 
             </div>
+
+            {/* 🔥 BLOG READING STREAK */}
+            <section className="space-y-4">
+              <div className="flex flex-col gap-1 px-2">
+                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-orange-500" /> Reading Streak
+                </h2>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Consecutive days you read a blog post
+                </p>
+              </div>
+
+              <div className={`rounded-2xl p-5 shadow-lg text-white ${
+                blogStreak >= 7
+                  ? "bg-gradient-to-r from-orange-500 to-rose-500"
+                  : blogStreak >= 3
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                  : blogStreak >= 1
+                  ? "bg-gradient-to-r from-yellow-400 to-amber-500"
+                  : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5"
+              }`}>
+                {blogStreak > 0 ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl">
+                        🔥
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">
+                          Current Streak
+                        </p>
+                        <p className="text-4xl font-black leading-none mt-0.5">
+                          {blogStreak}
+                          <span className="text-base font-bold ml-1 opacity-80">
+                            {blogStreak === 1 ? "day" : "days"}
+                          </span>
+                        </p>
+                        <p className="text-[10px] font-bold opacity-70 uppercase tracking-wider mt-1">
+                          {blogStreak >= 30
+                            ? "🏆 Legendary reader!"
+                            : blogStreak >= 14
+                            ? "⚡ Incredible dedication!"
+                            : blogStreak >= 7
+                            ? "🌟 On fire this week!"
+                            : blogStreak >= 3
+                            ? "💪 Great consistency!"
+                            : "✅ Keep it up!"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Total blog days</p>
+                      <p className="text-2xl font-black leading-none">{uniqueBlogDays.length}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="text-5xl mb-3">📚</div>
+                    <p className="text-sm font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      No reading streak yet
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">
+                      Read a blog post today to start your streak
+                    </p>
+                    <Link
+                      href="/blog"
+                      className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" /> Browse Blog
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </section>
 
             {/* ⚔️ ARENA RANKING SECTION */}
             <section className="space-y-4">
