@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "../components/structure/sidebar";
 import { AdminHeader } from "../components/structure/header";
+import { SiteConfigForm } from "./site-config-form";
 import {
   Settings, Bell, Mail, Shield, Database, Users, GraduationCap,
   Building2, BookOpen, Trophy, FileText, MessageSquare, Activity,
@@ -18,6 +19,13 @@ export default async function AdminSettingsPage() {
     .eq("id", user.id)
     .single();
   if (!profile || profile.role !== "admin") return redirect("/");
+
+  // Fetch site config
+  const { data: siteConfigRows } = await supabase
+    .from("site_config")
+    .select("config_key, config_value");
+  const siteConfig: Record<string, string | null> = {};
+  (siteConfigRows ?? []).forEach((r: any) => { siteConfig[r.config_key] = r.config_value; });
 
   // Fetch live counts in parallel
   const [
@@ -177,6 +185,9 @@ export default async function AdminSettingsPage() {
                 </div>
               </div>
             ))}
+
+            {/* Site Config: YouTube onboarding video */}
+            <SiteConfigForm currentVideoUrl={siteConfig["onboarding_video_url"] ?? null} />
 
           </div>
         </main>

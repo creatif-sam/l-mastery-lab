@@ -366,7 +366,7 @@ export function TutorQuizClient({ initialQuizzes, currentUserId }: Props) {
             return (
               <div
                 key={quiz.id}
-                className="bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden hover:shadow-lg transition-shadow"
+                className="bg-white dark:bg-slate-800/60 rounded-[5px] border border-slate-200 dark:border-white/5 overflow-hidden hover:shadow-lg transition-shadow"
               >
                 {/* header stripe */}
                 <div className={`h-1.5 w-full ${quiz.difficulty_level === "beginner" ? "bg-emerald-500" : quiz.difficulty_level === "intermediate" ? "bg-yellow-400" : "bg-red-500"}`} />

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Bell, Check, X, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export function NotificationCenter() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -40,13 +41,27 @@ export function NotificationCenter() {
   }
 
   async function handleResponse(requestId: string, status: 'accepted' | 'declined') {
-    await supabase
-      .from('partner_requests')
-      .update({ status })
-      .eq('id', requestId);
-    
-    // Note: In a full implementation, 'accepted' would trigger a Database Function 
-    // to link the two users into a group.
+    if (status === 'accepted') {
+      // Use the server-side route so both users get assigned to the same group
+      const res = await fetch('/api/network/accept-group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId }),
+      });
+
+      if (!res.ok) {
+        toast.error('Could not form group. Please try again.');
+        return;
+      }
+
+      toast.success('You are now in a study group! Check your Formation sidebar.');
+    } else {
+      await supabase
+        .from('partner_requests')
+        .update({ status: 'declined' })
+        .eq('id', requestId);
+    }
+
     setRequests(prev => prev.filter(r => r.id !== requestId));
     router.refresh();
   }

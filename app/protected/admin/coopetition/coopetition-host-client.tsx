@@ -989,7 +989,7 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
   // ════════════════════════════════════════════════════════════
   if (phase === "setup_config") {
     return (
-      <div className="space-y-6 max-w-xl">
+      <div className="space-y-6 max-w-xl pb-24 md:pb-6">
         <div className="flex items-center gap-3">
           <button onClick={() => setPhase("setup_quiz")} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             <ArrowLeft size={18} className="text-slate-500" />

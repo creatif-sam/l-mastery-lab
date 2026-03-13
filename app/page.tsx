@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { UserCircle, Sparkles, ArrowRight } from "lucide-react";
+import { UserCircle, Sparkles, ArrowRight, PlayCircle } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { CollaborativeAnimation } from "@/components/collaborative-animation";
 import { FooterSection } from "@/components/footer-section";
@@ -11,9 +11,16 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 
 type Lang = "en" | "fr";
 
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
 export default function HomePage() {
   const [siteLang, setSiteLang] = useState<Lang>("en");
   const handleLangChange = useCallback((l: Lang) => setSiteLang(l), []);
+  const [onboardingVideoId, setOnboardingVideoId] = useState<string | null>(null);
 
   const [currentLangIndex, setCurrentLangIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
@@ -21,6 +28,17 @@ export default function HomePage() {
   const languages = ["French.", "English."];
   const typingSpeed = 120;
   const pauseTime = 2500;
+
+  // Fetch site config (onboarding video)
+  useEffect(() => {
+    fetch("/api/site-config")
+      .then((r) => r.json())
+      .then((cfg) => {
+        const id = extractYouTubeId(cfg?.onboarding_video_url ?? "");
+        setOnboardingVideoId(id);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const currentFullText = languages[currentLangIndex];
@@ -117,6 +135,25 @@ export default function HomePage() {
               </Button>
             </div>
           </div>
+
+          {/* === ONBOARDING VIDEO (shown when admin has set a YouTube URL) === */}
+          {onboardingVideoId && (
+            <div className="w-full max-w-2xl mt-6 space-y-3">
+              <div className="flex items-center gap-2 justify-center">
+                <PlayCircle className="w-4 h-4 text-violet-500" />
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">How to Get Started</span>
+              </div>
+              <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-xl shadow-violet-500/10 bg-black">
+                <iframe
+                  src={`https://www.youtube.com/embed/${onboardingVideoId}?rel=0&modestbranding=1`}
+                  title="How to create an account on LML"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          )}
         </section>
       </main>
 
