@@ -21,6 +21,7 @@ import {
   X,
   Activity,
   Building2,
+  Swords,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -59,6 +60,7 @@ export function AdminSidebar() {
     { icon: GraduationCap,   label: "Tutors",         href: "/protected/admin/tutors" },
     { icon: Building2,       label: "Organisations",  href: "/protected/admin/organizations" },
     { icon: BarChart3,       label: "Analytics",      href: "/protected/admin/analytics" },
+    { icon: Swords,          label: "Coopetition",    href: "/protected/admin/coopetition" },
     { icon: MessageSquare,   label: "Community",      href: "/protected/admin/community" },
     { icon: MessageCircle,   label: "Messages",       href: "/protected/admin/messages" },
     { icon: Mail,            label: "Mail Campaigns", href: "/protected/admin/mail" },

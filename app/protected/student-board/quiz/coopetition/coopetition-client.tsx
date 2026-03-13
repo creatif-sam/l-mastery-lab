@@ -11,8 +11,8 @@ import {
 import { cn } from "@/lib/utils";
 
 // ─ Constants ─────────────────────────────────────────────────
-const Q_SECS   = 15;
-const REV_SECS = 5;
+const Q_SECS_DEFAULT = 15;
+const REV_SECS       = 5;
 
 const OPT = [
   { bg: "bg-[#E21B3C] hover:brightness-110", shape: "▲", letter: "A" },
@@ -62,9 +62,11 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
   const [players, setPlayers]           = useState<Player[]>([]);
   const [questions, setQuestions]       = useState<any[]>([]);
   const [qIdx, setQIdx]                 = useState(0);
-  const [timeLeft, setTimeLeft]         = useState(Q_SECS);
+  const [timeLeft, setTimeLeft]         = useState(Q_SECS_DEFAULT);
   const [myAnswer, setMyAnswer]         = useState<string | null>(null);
   const [correctId, setCorrectId]       = useState<string | null>(null);
+  const [qSecs, setQSecs]               = useState(Q_SECS_DEFAULT);
+  const qSecsRef                        = useRef(Q_SECS_DEFAULT);
   const [showCreate, setShowCreate]     = useState(false);
   const [showJoin, setShowJoin]         = useState(false);
   const [creatingGame, setCreatingGame] = useState(false);
@@ -76,6 +78,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { playersRef.current = players; }, [players]);
   useEffect(() => { selectedQzRef.current = selectedQuiz; }, [selectedQuiz]);
+  useEffect(() => { qSecsRef.current = qSecs; }, [qSecs]);
 
   // ─ Cleanup on unmount ─
   useEffect(() => () => {
@@ -158,8 +161,9 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
     if (phase !== "question") return;
     clearAllTimers();
     revFiredRef.current = false;
-    setTimeLeft(Q_SECS);
-    let t = Q_SECS;
+    const t0 = qSecsRef.current;
+    setTimeLeft(t0);
+    let t = t0;
     timerRef.current = setInterval(() => {
       t--;
       setTimeLeft(t);
@@ -191,6 +195,8 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
       })
       .on("broadcast", { event: "game_start" }, ({ payload }) => {
         if (isHostRef.current) return;
+        // Use host-defined time per question if provided
+        if (payload.timeSecs) { qSecsRef.current = payload.timeSecs; setQSecs(payload.timeSecs); }
         questionsRef.current = payload.questions;
         setQuestions(payload.questions);
         qIdxRef.current = 0;
@@ -237,7 +243,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
 
     const { data: session, error } = await supabase
       .from("coopetition_sessions")
-      .insert({ quiz_id: selectedQuiz, host_id: currentUser.id, join_code: code, status: "lobby" })
+      .insert({ quiz_id: selectedQuiz, host_id: currentUser.id, join_code: code, status: "lobby", time_per_question: qSecsRef.current })
       .select("id")
       .single();
 
@@ -339,7 +345,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
     setMyAnswer(null);
     setCorrectId(null);
 
-    chanRef.current?.send({ type: "broadcast", event: "game_start", payload: { questions: qs } });
+    chanRef.current?.send({ type: "broadcast", event: "game_start", payload: { questions: qs, timeSecs: qSecsRef.current } });
     setPhase("question");
     setStartingGame(false);
   };
@@ -402,7 +408,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
             {[
               { icon: "⚡", label: "Real-time battles" },
               { icon: "🏆", label: "Live leaderboard" },
-              { icon: "⏱️", label: "15s countdown" },
+              { icon: "⏱️", label: "Custom timer" },
             ].map(i => (
               <div key={i.label} className="flex items-center gap-1.5 justify-center">{i.icon} {i.label}</div>
             ))}
@@ -455,6 +461,20 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
                   ))}
                 </div>
               )}
+              {/* Time per question */}
+              <div>
+                <p className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1.5">
+                  <Timer size={12} /> Time per question: <span className="text-violet-600">{qSecs}s</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[10, 15, 20, 25, 30, 45, 60].map(t => (
+                    <button key={t} onClick={() => { setQSecs(t); qSecsRef.current = t; }}
+                      className={cn("px-2.5 py-1 rounded-lg text-xs font-bold border transition-all",
+                        qSecs === t ? "bg-violet-600 text-white border-violet-600" : "border-slate-200 dark:border-white/10 text-slate-500 hover:border-violet-400"
+                      )}>{t}s</button>
+                  ))}
+                </div>
+              </div>
               <button
                 onClick={handleCreate}
                 disabled={!selectedQuiz || creatingGame}
@@ -589,7 +609,7 @@ export function CoopetitionClient({ currentUser, quizzes }: Props) {
   if (phase === "question") {
     const currentQ = questions[qIdx];
     const opts     = currentQ?.options || currentQ?.question_options || [];
-    const pct      = (timeLeft / Q_SECS) * 100;
+    const pct      = (timeLeft / qSecsRef.current) * 100;
     const isLow    = timeLeft <= 5;
 
     return (

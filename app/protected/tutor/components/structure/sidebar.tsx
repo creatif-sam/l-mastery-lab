@@ -17,6 +17,7 @@ import {
   Settings,
   MoreHorizontal,
   X,
+  Swords,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ export function TutorSidebar() {
     { icon: Users,           label: "My Students",    href: "/protected/tutor/students" },
     { icon: BookOpen,        label: "Lessons",        href: "/protected/tutor/lessons" },
     { icon: HelpCircle,      label: "Quizzes",        href: "/protected/tutor/quiz" },
+    { icon: Swords,          label: "Coopetition",    href: "/protected/tutor/coopetition" },
     { icon: MessageSquare,   label: "Community",      href: "/protected/tutor/community" },
     { icon: FileText,        label: "Blog",           href: "/protected/tutor/blog" },
     { icon: Mail,            label: "Messages",       href: "/protected/tutor/messages" },

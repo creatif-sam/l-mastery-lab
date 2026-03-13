@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Heart, ThumbsUp, MessageCircle, Send, Image, X,
   Trophy, Star, Loader2, Trash2, ChevronDown, ChevronUp,
@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 // ─ Types ─
 type OrgMember = { id: string; full_name: string; avatar_url?: string; role?: string };
@@ -79,12 +80,25 @@ function MentionInput({
 }) {
   const [mentionStart, setMentionStart] = useState(-1);
   const [mentionQuery, setMentionQuery] = useState("");
+  const [selectedIdx, setSelectedIdx]  = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const listRef     = useRef<HTMLDivElement>(null);
 
   const filteredMembers =
     mentionStart >= 0
-      ? orgMembers.filter((m) => m.full_name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6)
+      ? orgMembers.filter((m) => m.full_name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 7)
       : [];
+
+  // Reset keyboard selection when list changes
+  useEffect(() => { setSelectedIdx(0); }, [filteredMembers.length, mentionQuery]);
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const item = list.children[selectedIdx] as HTMLElement | undefined;
+    item?.scrollIntoView({ block: "nearest" });
+  }, [selectedIdx]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
@@ -94,7 +108,7 @@ function MentionInput({
     const atIdx = textBefore.lastIndexOf("@");
     if (atIdx >= 0) {
       const afterAt = textBefore.slice(atIdx + 1);
-      if (!afterAt.includes("\n")) {
+      if (!afterAt.includes("\n") && !afterAt.includes(" ")) {
         setMentionStart(atIdx);
         setMentionQuery(afterAt);
         return;
@@ -105,15 +119,39 @@ function MentionInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Escape" && mentionStart >= 0) {
-      setMentionStart(-1);
-      setMentionQuery("");
-      e.preventDefault();
-      return;
-    }
-    if (e.key === "Enter" && !e.shiftKey && filteredMembers.length === 0 && rows === 1) {
-      e.preventDefault();
-      onSubmit?.();
+    if (filteredMembers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIdx(i => Math.min(i + 1, filteredMembers.length - 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIdx(i => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        selectMember(filteredMembers[selectedIdx]);
+        return;
+      }
+      if (e.key === "Escape") {
+        setMentionStart(-1);
+        setMentionQuery("");
+        e.preventDefault();
+        return;
+      }
+    } else {
+      if (e.key === "Escape" && mentionStart >= 0) {
+        setMentionStart(-1);
+        setMentionQuery("");
+        e.preventDefault();
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey && rows === 1) {
+        e.preventDefault();
+        onSubmit?.();
+      }
     }
   };
 
@@ -139,28 +177,65 @@ function MentionInput({
         className={className}
       />
       {filteredMembers.length > 0 && (
-        <div className="absolute bottom-full left-0 mb-1.5 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden z-50">
-          <div className="px-3 py-2 border-b border-slate-100 dark:border-white/10 bg-violet-50 dark:bg-violet-500/10">
-            <p className="text-[9px] font-black text-violet-500 uppercase tracking-widest">Mention someone</p>
+        <div
+          className="absolute top-full left-0 mt-1 w-72 bg-white dark:bg-[#1c1e21] border border-slate-200/80 dark:border-white/10 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)] overflow-hidden z-50"
+          style={{ animation: "mentionFadeIn 120ms ease-out" }}
+        >
+          {/* Header */}
+          <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-slate-100 dark:border-white/8">
+            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-black text-[10px]">@</span>
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {mentionQuery ? (
+                <>People matching <span className="text-slate-700 dark:text-white font-bold">&ldquo;{mentionQuery}&rdquo;</span></>
+              ) : (
+                "People"
+              )}
+            </span>
           </div>
-          <div className="max-h-48 overflow-y-auto">
-            {filteredMembers.map((member) => (
+
+          {/* Results */}
+          <div ref={listRef} className="max-h-56 overflow-y-auto py-1">
+            {filteredMembers.map((member, i) => (
               <button
                 key={member.id}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); selectMember(member); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-left transition-colors"
+                onMouseEnter={() => setSelectedIdx(i)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors",
+                  i === selectedIdx
+                    ? "bg-blue-50 dark:bg-blue-500/10"
+                    : "hover:bg-slate-50 dark:hover:bg-white/5"
+                )}
               >
-                <UserAvatar user={member} size="sm" />
-                <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight">{member.full_name}</p>
-                  <p className="text-[10px] text-slate-400 capitalize mt-0.5">{member.role ?? "student"}</p>
+                <UserAvatar user={member} size="md" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight truncate">{member.full_name}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 capitalize mt-0.5">{member.role ?? "student"}</p>
                 </div>
+                {i === selectedIdx && (
+                  <kbd className="hidden sm:inline text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
+                    ↵
+                  </kbd>
+                )}
               </button>
             ))}
           </div>
+
+          {/* Footer hint */}
+          <div className="px-3.5 py-1.5 border-t border-slate-100 dark:border-white/8 bg-slate-50 dark:bg-white/[0.03]">
+            <p className="text-[10px] text-slate-400">↑ ↓ navigate &nbsp;·&nbsp; ↵ or Tab select &nbsp;·&nbsp; Esc dismiss</p>
+          </div>
         </div>
       )}
+      <style>{`
+        @keyframes mentionFadeIn {
+          from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        }
+      `}</style>
     </div>
   );
 }
