@@ -6,8 +6,14 @@ export const dynamic = "force-dynamic";
 
 // Guard against unauthorized cron calls
 function isAuthorized(req: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  // If env var is not configured at all, block with a clear log
+  if (!cronSecret) {
+    console.error("[cron/weekly-progress] CRON_SECRET environment variable is not set. Set it in your deployment (Vercel) environment variables.");
+    return false;
+  }
   const secret = req.headers.get("x-cron-secret") ?? req.nextUrl.searchParams.get("cron_secret");
-  return secret === process.env.CRON_SECRET;
+  return secret === cronSecret;
 }
 
 function getAdminClient() {
@@ -186,7 +192,16 @@ function buildEmailHtml({
 
 // ─ Main handler ───────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  if (!process.env.CRON_SECRET) {
+    // Env var not configured in deployment — return 500 (not 401) so logs are clear
+    return NextResponse.json(
+      { error: "Server misconfiguration: CRON_SECRET env var is not set in production. Add it to your Vercel environment variables." },
+      { status: 500 }
+    );
+  }
+
   if (!isAuthorized(req)) {
+    console.warn("[cron/weekly-progress] Unauthorized request: x-cron-secret header present but does not match CRON_SECRET.");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

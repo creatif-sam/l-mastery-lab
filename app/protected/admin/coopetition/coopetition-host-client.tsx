@@ -435,15 +435,21 @@ export function CoopetitionHostClient({ currentUser, quizzes: initialQuizzes }: 
 
     if (error || !session) { toast.error("Could not create session"); setCreatingSession(false); return; }
 
-    await supabase.from("coopetition_participants").insert({
-      session_id: session.id,
-      user_id: currentUser.id,
-      display_name: currentUser.full_name,
-    });
+    // Only add host as participant if they are a student (not tutor/admin — they host, not compete)
+    if (currentUser.role === "student") {
+      await supabase.from("coopetition_participants").insert({
+        session_id: session.id,
+        user_id: currentUser.id,
+        display_name: currentUser.full_name,
+      });
+      const me: Player = { id: currentUser.id, name: currentUser.full_name, score: 0 };
+      playersRef.current = [me];
+      setPlayers([me]);
+    } else {
+      playersRef.current = [];
+      setPlayers([]);
+    }
 
-    const me: Player = { id: currentUser.id, name: currentUser.full_name, score: 0 };
-    playersRef.current = [me];
-    setPlayers([me]);
     setJoinCode(code);
     subscribe(session.id);
     setPhase("lobby");

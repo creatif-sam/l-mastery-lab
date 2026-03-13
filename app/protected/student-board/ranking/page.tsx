@@ -10,7 +10,10 @@ import {
   Target, 
   BarChart3,
   Calculator,
-  AlertCircle
+  AlertCircle,
+  Swords,
+  Medal,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -59,6 +62,52 @@ export default async function OrganizationRankingPage() {
   learningQuery = learningQuery.eq("user_lesson_progress.completed", true);
   
   const { data: learningData } = await learningQuery;
+
+  // 1c. ARENA (Coopetition) scores — fetch current user's sessions + org leaderboard
+  const { data: myArenaData } = await supabase
+    .from("coopetition_participants")
+    .select("score, session_id, coopetition_sessions!inner(status)")
+    .eq("user_id", user?.id)
+    .eq("coopetition_sessions.status", "finished")
+    .order("score", { ascending: false });
+
+  // Fetch org arena leaderboard: top score per user who is in same org
+  let arenaLeaderboard: Array<{ profile_id: string; full_name: string; top_arena_score: number }> = [];
+  if (profile?.organization_id) {
+    // Get all students in org
+    const { data: orgStudents } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("organization_id", profile.organization_id)
+      .eq("role", "student");
+
+    if (orgStudents?.length) {
+      const studentIds = orgStudents.map((s: any) => s.id);
+      const { data: arenaScores } = await supabase
+        .from("coopetition_participants")
+        .select("user_id, score, coopetition_sessions!inner(status)")
+        .in("user_id", studentIds)
+        .eq("coopetition_sessions.status", "finished");
+
+      // Aggregate top score per user
+      const topScoreMap = new Map<string, number>();
+      (arenaScores ?? []).forEach((a: any) => {
+        const cur = topScoreMap.get(a.user_id) ?? 0;
+        if ((a.score ?? 0) > cur) topScoreMap.set(a.user_id, a.score ?? 0);
+      });
+
+      arenaLeaderboard = orgStudents
+        .filter((s: any) => topScoreMap.has(s.id))
+        .map((s: any) => ({ profile_id: s.id, full_name: s.full_name, top_arena_score: topScoreMap.get(s.id) ?? 0 }))
+        .sort((a, b) => b.top_arena_score - a.top_arena_score)
+        .slice(0, 10);
+    }
+  }
+
+  const myTopArenaScore = myArenaData?.length ? Math.max(...myArenaData.map((a: any) => a.score ?? 0)) : null;
+  const myArenaRank = myTopArenaScore != null
+    ? arenaLeaderboard.findIndex((a) => a.profile_id === user?.id) + 1
+    : null;
 
   // 2. 🧮 CALCULATION LOGIC (Sum of all / Total count)
   const quizCount = quizData?.length || 0;
@@ -215,6 +264,78 @@ export default async function OrganizationRankingPage() {
               </section>
 
             </div>
+
+            {/* ⚔️ ARENA RANKING SECTION */}
+            <section className="space-y-4">
+              <div className="flex flex-col gap-1 px-2">
+                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
+                  <Swords className="w-5 h-5 text-rose-500" /> Arena Rankings
+                </h2>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Live battle (Coopetition) top scores
+                </p>
+              </div>
+
+              {/* My Arena Score Card */}
+              {myTopArenaScore != null ? (
+                <div className="bg-gradient-to-r from-rose-500 to-violet-600 rounded-2xl p-5 text-white shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Your Best Arena Score</p>
+                        <p className="text-2xl font-black leading-none mt-0.5">{myTopArenaScore} pts</p>
+                      </div>
+                    </div>
+                    {myArenaRank && myArenaRank > 0 && (
+                      <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Rank</p>
+                        <p className="text-3xl font-black leading-none">#{myArenaRank}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3 text-[10px] font-bold opacity-70 uppercase tracking-wider">
+                    {(myArenaData?.length ?? 0)} battle{(myArenaData?.length ?? 0) !== 1 ? "s" : ""} completed
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 p-6 text-center">
+                  <Swords className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                  <p className="text-sm font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">No arena battles yet</p>
+                  <p className="text-xs text-slate-400 mt-1 mb-4">Join a coopetition battle to appear on the leaderboard</p>
+                  <Link
+                    href="/protected/student-board/quiz/coopetition"
+                    className="inline-flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors"
+                  >
+                    <Swords className="w-3.5 h-3.5" /> Enter the Arena
+                  </Link>
+                </div>
+              )}
+
+              {/* Arena Org Leaderboard */}
+              {arenaLeaderboard.length > 0 ? (
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
+                  {arenaLeaderboard.map((player, idx) => (
+                    <RankRow
+                      key={player.profile_id}
+                      name={player.full_name}
+                      score={player.top_arena_score}
+                      rank={idx + 1}
+                      unit="Pts"
+                      highlight={player.profile_id === user?.id}
+                      icon={idx === 0 ? <Medal className="w-4 h-4 text-rose-500 fill-rose-100" /> : null}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 p-6 text-center">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No arena scores in your organization yet</p>
+                </div>
+              )}
+            </section>
+
           </div>
         </main>
       </div>
@@ -222,9 +343,14 @@ export default async function OrganizationRankingPage() {
   );
 }
 
-function RankRow({ name, score, rank, unit, icon }: any) {
+function RankRow({ name, score, rank, unit, icon, highlight }: any) {
   return (
-    <div className="flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b last:border-0 border-slate-100 dark:border-white/5">
+    <div className={cn(
+      "flex items-center justify-between p-5 transition-colors border-b last:border-0 border-slate-100 dark:border-white/5",
+      highlight
+        ? "bg-violet-50 dark:bg-violet-900/20"
+        : "hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+    )}>
       <div className="flex items-center gap-4">
         <span className={cn(
           "text-[10px] font-black w-6",
@@ -234,7 +360,8 @@ function RankRow({ name, score, rank, unit, icon }: any) {
           {name.charAt(0)}
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-sm font-bold text-slate-800 dark:text-white tracking-tight">{name}</p>
+          <p className={cn("text-sm font-bold tracking-tight", highlight ? "text-violet-700 dark:text-violet-300" : "text-slate-800 dark:text-white")}>{name}</p>
+          {highlight && <span className="text-[8px] font-black bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded uppercase">You</span>}
           {icon}
         </div>
       </div>

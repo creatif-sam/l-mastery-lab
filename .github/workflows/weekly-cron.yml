@@ -13,12 +13,28 @@ jobs:
     steps:
       - name: Trigger weekly progress cron
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
+          # Ensure the site URL has https:// prefix
+          SITE_URL="${{ secrets.NEXT_PUBLIC_SITE_URL }}"
+          if [[ "$SITE_URL" != https://* && "$SITE_URL" != http://* ]]; then
+            SITE_URL="https://$SITE_URL"
+          fi
+          echo "Calling: $SITE_URL/api/cron/weekly-progress"
+
+          response=$(curl -s -o /tmp/cron_response.txt -w "%{http_code}" \
             -X POST \
+            -H "Content-Type: application/json" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.NEXT_PUBLIC_SITE_URL }}/api/cron/weekly-progress")
+            "$SITE_URL/api/cron/weekly-progress")
+
           echo "HTTP status: $response"
+          echo "Response body: $(cat /tmp/cron_response.txt)"
+
           if [ "$response" != "200" ]; then
-            echo "Cron endpoint returned $response — failing job"
+            echo "❌ Cron endpoint returned $response — failing job"
+            echo "ℹ️  Fix checklist:"
+            echo "  1. Set CRON_SECRET in Vercel Environment Variables (to any strong random string)"
+            echo "  2. Set CRON_SECRET in GitHub repository Secrets (same value as Vercel)"
+            echo "  3. Set NEXT_PUBLIC_SITE_URL in GitHub repository Secrets (e.g. lml.gen116.com or https://lml.gen116.com)"
             exit 1
           fi
+          echo "✅ Weekly progress emails triggered successfully"
